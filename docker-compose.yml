@@ -1,8 +1,0 @@
-services:
-
-volumes:
-  elasticsearch-data:
-
-networks:
-  sentinel-network:
-    driver: bridge
