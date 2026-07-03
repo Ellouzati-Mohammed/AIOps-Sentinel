@@ -1,5 +1,7 @@
 package com.aiops.spring_app.service;
 
+import com.aiops.spring_app.model.EventType;
+import com.aiops.spring_app.model.Severity;
 import com.aiops.spring_app.model.SimulationContext;
 import org.springframework.stereotype.Service;
 
@@ -30,7 +32,7 @@ public class SimulationService {
      * Simule une connexion utilisateur dans un contexte e-commerce.
      */
     public String simulateLogin() {
-        SimulationContext context = generateContext("login", "/simulation/login", "GET", 200, null, null, "authentication", randomBetween(0, 40));
+        SimulationContext context = generateContext(EventType.USER_LOGIN, Severity.LOW, "/simulation/login", "GET", 200, null, null, "authentication", randomBetween(0, 40));
         logService.logInfo(context, "Session ouverte pour utilisateur");
 
         if (context.attempts() > 1) {
@@ -47,7 +49,7 @@ public class SimulationService {
      * Simule une deconnexion utilisateur.
      */
     public String simulateLogout() {
-        SimulationContext context = generateContext("logout", "/simulation/logout", "GET", 200, null, null, "session-termination", randomBetween(0, 40));
+        SimulationContext context = generateContext(EventType.USER_LOGOUT, Severity.LOW, "/simulation/logout", "GET", 200, null, null, "session-termination", randomBetween(0, 40));
         logService.logInfo(context, "Utilisateur deconnecte");
         logService.logInfo(context, "Session fermee proprement");
         logService.logInfo(context, "Token de session invalide cote serveur");
@@ -58,7 +60,7 @@ public class SimulationService {
      * Simule la creation d'une commande e-commerce.
      */
     public String simulateOrder() {
-        SimulationContext context = generateContext("order", "/simulation/order", "POST", 201, null, null, "order-creation", randomBetween(0, 40));
+        SimulationContext context = generateContext(EventType.ORDER_CREATED, Severity.MEDIUM, "/simulation/order", "POST", 201, null, null, "order-creation", randomBetween(0, 40));
         logService.logInfo(context, "Recherche produit effectuee avant commande");
         logService.logInfo(context, "Commande creee avec succes");
         logService.logInfo(context, "Stock reserve pour le produit");
@@ -73,7 +75,8 @@ public class SimulationService {
     public String simulatePayment() {
         boolean accepted = random.nextBoolean();
         SimulationContext context = generateContext(
-                "payment",
+            accepted ? EventType.PAYMENT_ACCEPTED : EventType.PAYMENT_FAILED,
+            accepted ? Severity.MEDIUM : Severity.HIGH,
                 "/simulation/payment",
                 "POST",
                 accepted ? 200 : 402,
@@ -99,7 +102,7 @@ public class SimulationService {
      * Simule une recherche produit avec cache et latence.
      */
     public String simulateSearch() {
-        SimulationContext context = generateContext("search", "/simulation/search", "GET", 200, null, null, "catalog-search", randomBetween(0, 40));
+        SimulationContext context = generateContext(EventType.PRODUCT_SEARCH, Severity.LOW, "/simulation/search", "GET", 200, null, null, "catalog-search", randomBetween(0, 40));
         logService.logInfo(context, "Produit recherche avec succes");
         logService.logDebug(context, "Parametre de recherche prepare", "query", "laptop");
         logService.logInfo(context, "Cache utilise pour la recherche produit");
@@ -116,7 +119,8 @@ public class SimulationService {
     public String simulateInventory() {
         int stockLevel = randomBetween(0, 40);
         SimulationContext context = generateContext(
-                "inventory",
+            EventType.INVENTORY_UPDATED,
+            stockLevel == 0 ? Severity.HIGH : Severity.MEDIUM,
                 "/simulation/inventory",
                 "PUT",
                 stockLevel == 0 ? 503 : 200,
@@ -143,7 +147,8 @@ public class SimulationService {
     public String simulateDatabase() {
         boolean databaseAvailable = random.nextBoolean();
         SimulationContext context = generateContext(
-                "database",
+            databaseAvailable ? EventType.DATABASE_QUERY : EventType.DATABASE_FAILURE,
+            databaseAvailable ? Severity.MEDIUM : Severity.CRITICAL,
                 "/simulation/database",
                 "POST",
                 databaseAvailable ? 200 : 500,
@@ -169,7 +174,7 @@ public class SimulationService {
      * Simule des indicateurs de performance applicative.
      */
     public String simulatePerformance() {
-        SimulationContext context = generateContext("performance", "/simulation/performance", "GET", 200, null, null, "performance-check", randomBetween(0, 40));
+        SimulationContext context = generateContext(EventType.PERFORMANCE_CHECK, Severity.MEDIUM, "/simulation/performance", "GET", 200, null, null, "performance-check", randomBetween(0, 40));
         logService.logInfo(context, "Requete traitee avec succes");
         logService.logInfo(context, "Nombre de requetes simultanees observe", "observedConcurrentRequests", context.concurrentRequests());
         logService.logDebug(context, "Snapshot de performance collecte", "queueSize", context.queueSize());
@@ -191,7 +196,8 @@ public class SimulationService {
      */
     public String simulateAnomaly() {
         SimulationContext context = generateContext(
-                "anomaly",
+                EventType.APPLICATION_ANOMALY,
+                Severity.CRITICAL,
                 "/simulation/anomaly",
                 "GET",
                 500,
@@ -224,7 +230,7 @@ public class SimulationService {
         };
     }
 
-    private SimulationContext generateContext(String anomalyType, String endpoint, String httpMethod, int statusCode, String errorCode, String errorMessage, String anomalyLabel, int stockLevel) {
+    private SimulationContext generateContext(EventType eventType, Severity severity, String endpoint, String httpMethod, int statusCode, String errorCode, String errorMessage, String anomalyLabel, int stockLevel) {
         String serviceName = randomFrom(SERVICES);
         String environment = randomFrom(ENVIRONMENTS);
         return new SimulationContext(
@@ -235,6 +241,8 @@ public class SimulationService {
                 randomTransactionId(),
                 randomInvoiceId(),
                 randomMoney(20, 500),
+                eventType,
+                severity,
                 endpoint,
                 httpMethod,
                 statusCode,
@@ -252,7 +260,7 @@ public class SimulationService {
                 randomCorrelationId(),
                 errorCode,
                 errorMessage,
-                anomalyLabel != null ? anomalyLabel : anomalyType
+                anomalyLabel != null ? anomalyLabel : eventType.name()
         );
     }
 

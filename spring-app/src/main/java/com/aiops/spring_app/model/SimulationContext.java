@@ -10,6 +10,8 @@ public record SimulationContext(
         String transactionId,
         String invoiceId,
         BigDecimal amount,
+        EventType eventType,
+        Severity severity,
         String endpoint,
         String httpMethod,
         int statusCode,

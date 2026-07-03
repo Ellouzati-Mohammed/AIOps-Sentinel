@@ -1,0 +1,16 @@
+package com.aiops.spring_app.model;
+
+public enum EventType {
+    USER_LOGIN,
+    USER_LOGOUT,
+    ORDER_CREATED,
+    PRODUCT_SEARCH,
+    PAYMENT_ACCEPTED,
+    PAYMENT_FAILED,
+    INVENTORY_UPDATED,
+    DATABASE_QUERY,
+    DATABASE_FAILURE,
+    PERFORMANCE_CHECK,
+    APPLICATION_ANOMALY,
+    FAULT_INJECTION
+}

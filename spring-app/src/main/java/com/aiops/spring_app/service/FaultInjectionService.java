@@ -1,5 +1,7 @@
 package com.aiops.spring_app.service;
 
+import com.aiops.spring_app.model.EventType;
+import com.aiops.spring_app.model.Severity;
 import com.aiops.spring_app.model.SimulationContext;
 import org.springframework.stereotype.Service;
 
@@ -23,7 +25,7 @@ public class FaultInjectionService {
      * Simule une RuntimeException.
      */
     public String simulateRuntimeException() {
-        SimulationContext context = createFaultContext("runtime-exception", "/api/inject-fault/runtime", "POST", 500, "RUNTIME-500", "Unexpected application exception");
+        SimulationContext context = createFaultContext(EventType.APPLICATION_ANOMALY, Severity.CRITICAL, "/api/inject-fault/runtime", "POST", 500, "RUNTIME-500", "Unexpected application exception");
 
         try {
             throw new RuntimeException("Unexpected application exception");
@@ -38,7 +40,7 @@ public class FaultInjectionService {
      * Simule une SQLException.
      */
     public String simulateSQLException() {
-        SimulationContext context = createFaultContext("sql-exception", "/api/inject-fault/sql", "POST", 503, "SQL-503", "Unable to connect to PostgreSQL database.");
+        SimulationContext context = createFaultContext(EventType.DATABASE_FAILURE, Severity.CRITICAL, "/api/inject-fault/sql", "POST", 503, "SQL-503", "Unable to connect to PostgreSQL database.");
 
         try {
             throw new SQLException("Unable to connect to PostgreSQL database.");
@@ -53,7 +55,7 @@ public class FaultInjectionService {
      * Simule une rafale d'erreurs.
      */
     public String simulateRepeatedErrors() {
-        SimulationContext context = createFaultContext("repeated-errors", "/api/inject-fault/repeated", "GET", 503, "PAY-503", "Payment service unavailable.");
+        SimulationContext context = createFaultContext(EventType.PAYMENT_FAILED, Severity.HIGH, "/api/inject-fault/repeated", "GET", 503, "PAY-503", "Payment service unavailable.");
 
         for (int i = 1; i <= 20; i++) {
             logService.logError(context, "Repeated error", "attempt", i);
@@ -63,7 +65,7 @@ public class FaultInjectionService {
         return "20 erreurs consécutives générées.";
     }
 
-    private SimulationContext createFaultContext(String anomalyType, String endpoint, String httpMethod, int statusCode, String errorCode, String errorMessage) {
+    private SimulationContext createFaultContext(EventType eventType, Severity severity, String endpoint, String httpMethod, int statusCode, String errorCode, String errorMessage) {
         return new SimulationContext(
                 randomUserId(),
                 randomSessionId(),
@@ -72,6 +74,8 @@ public class FaultInjectionService {
                 randomTransactionId(),
                 randomInvoiceId(),
                 randomMoney(20, 500),
+                eventType,
+                severity,
                 endpoint,
                 httpMethod,
                 statusCode,
@@ -89,7 +93,7 @@ public class FaultInjectionService {
                 randomCorrelationId(),
                 errorCode,
                 errorMessage,
-                anomalyType
+                eventType.name()
         );
     }
 
