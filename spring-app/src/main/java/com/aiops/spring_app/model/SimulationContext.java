@@ -29,5 +29,6 @@ public record SimulationContext(
         String correlationId,
         String errorCode,
         String errorMessage,
-        String anomalyType) {
+        String anomalyType,
+        Integer errorSequence) {
 }

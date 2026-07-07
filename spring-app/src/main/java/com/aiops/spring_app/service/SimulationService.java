@@ -260,7 +260,8 @@ public class SimulationService {
                 randomCorrelationId(),
                 errorCode,
                 errorMessage,
-                anomalyLabel != null ? anomalyLabel : eventType.name()
+                anomalyLabel != null ? anomalyLabel : eventType.name(),
+                null
         );
     }
 

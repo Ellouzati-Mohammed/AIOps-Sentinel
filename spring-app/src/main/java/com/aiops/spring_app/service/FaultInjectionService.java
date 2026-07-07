@@ -1,6 +1,7 @@
 package com.aiops.spring_app.service;
 
 import com.aiops.spring_app.model.EventType;
+import com.aiops.spring_app.model.FaultScenario;
 import com.aiops.spring_app.model.Severity;
 import com.aiops.spring_app.model.SimulationContext;
 import org.springframework.stereotype.Service;
@@ -8,6 +9,8 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.sql.SQLException;
+import java.util.concurrent.RejectedExecutionException;
+import java.net.SocketTimeoutException;
 import java.util.Random;
 
 @Service
@@ -15,6 +18,7 @@ public class FaultInjectionService {
 
     private final LogService logService;
     private final Random random;
+    private static final int BURST_SIZE = 20;
 
     public FaultInjectionService(LogService logService) {
         this.logService = logService;
@@ -25,7 +29,7 @@ public class FaultInjectionService {
      * Simule une RuntimeException.
      */
     public String simulateRuntimeException() {
-        SimulationContext context = createFaultContext(EventType.APPLICATION_ANOMALY, Severity.CRITICAL, "/api/inject-fault/runtime", "POST", 500, "RUNTIME-500", "Unexpected application exception");
+        SimulationContext context = createFaultContext(EventType.APPLICATION_ANOMALY, Severity.CRITICAL, "/api/inject-fault/runtime", "POST", 500, "RUNTIME-500", "Unexpected application exception", "runtime-exception");
 
         try {
             throw new RuntimeException("Unexpected application exception");
@@ -40,7 +44,7 @@ public class FaultInjectionService {
      * Simule une SQLException.
      */
     public String simulateSQLException() {
-        SimulationContext context = createFaultContext(EventType.DATABASE_FAILURE, Severity.CRITICAL, "/api/inject-fault/sql", "POST", 503, "SQL-503", "Unable to connect to PostgreSQL database.");
+        SimulationContext context = createFaultContext(EventType.DATABASE_FAILURE, Severity.CRITICAL, "/api/inject-fault/sql", "POST", 503, "SQL-503", "Unable to connect to PostgreSQL database.", "database-error");
 
         try {
             throw new SQLException("Unable to connect to PostgreSQL database.");
@@ -55,17 +59,65 @@ public class FaultInjectionService {
      * Simule une rafale d'erreurs.
      */
     public String simulateRepeatedErrors() {
-        SimulationContext context = createFaultContext(EventType.PAYMENT_FAILED, Severity.HIGH, "/api/inject-fault/repeated", "GET", 503, "PAY-503", "Payment service unavailable.");
-
-        for (int i = 1; i <= 20; i++) {
-            logService.logError(context, "Repeated error", "attempt", i);
-        }
-
-        logService.logWarn(context, "Repeated failures detected on payment flow", "errorCount", 20);
-        return "20 erreurs consécutives générées.";
+        return simulateRepeatedErrors("POST");
     }
 
-    private SimulationContext createFaultContext(EventType eventType, Severity severity, String endpoint, String httpMethod, int statusCode, String errorCode, String errorMessage) {
+    /**
+     * Simule une rafale d'erreurs.
+     */
+    public String simulateRepeatedErrors(String httpMethod) {
+        FaultScenario scenario = randomScenario();
+        SimulationContext context = createFaultContext(
+                scenario.eventType(),
+                scenario.severity(),
+                "/api/inject-fault/repeated",
+                httpMethod,
+                scenario.statusCode(),
+                scenario.errorCode(),
+                scenario.errorMessage(),
+                scenario.anomalyType()
+        );
+
+        for (int errorSequence = 1; errorSequence <= BURST_SIZE; errorSequence++) {
+            SimulationContext sequenceContext = new SimulationContext(
+                    context.userId(),
+                    context.sessionId(),
+                    context.orderId(),
+                    context.productId(),
+                    context.transactionId(),
+                    context.invoiceId(),
+                    context.amount(),
+                    context.eventType(),
+                    context.severity(),
+                    context.endpoint(),
+                    context.httpMethod(),
+                    context.statusCode(),
+                    context.processingTimeMs(),
+                    context.responseTimeMs(),
+                    context.attempts(),
+                    context.stockLevel(),
+                    context.concurrentRequests(),
+                    context.queueSize(),
+                    context.ipAddress(),
+                    context.browser(),
+                    context.city(),
+                    context.serviceName(),
+                    context.environment(),
+                    context.correlationId(),
+                    context.errorCode(),
+                    context.errorMessage(),
+                    context.anomalyType(),
+                    errorSequence
+            );
+
+            logService.logError(sequenceContext, scenario.errorMessage(), throwableFor(scenario));
+        }
+
+        logService.logWarn(context, "Repeated failures detected for selected fault scenario", "errorCount", BURST_SIZE);
+        return BURST_SIZE + " erreurs consécutives générées pour le scénario " + scenario.name() + ".";
+    }
+
+    private SimulationContext createFaultContext(EventType eventType, Severity severity, String endpoint, String httpMethod, int statusCode, String errorCode, String errorMessage, String anomalyType) {
         return new SimulationContext(
                 randomUserId(),
                 randomSessionId(),
@@ -93,8 +145,27 @@ public class FaultInjectionService {
                 randomCorrelationId(),
                 errorCode,
                 errorMessage,
-                eventType.name()
+                anomalyType,
+                null
         );
+    }
+
+    private FaultScenario randomScenario() {
+        FaultScenario[] scenarios = FaultScenario.values();
+        return scenarios[random.nextInt(scenarios.length)];
+    }
+
+    private Throwable throwableFor(FaultScenario scenario) {
+        return switch (scenario) {
+            case PAYMENT_FAILED -> new IllegalStateException(scenario.errorMessage());
+            case DATABASE_FAILURE -> new SQLException(scenario.errorMessage());
+            case NETWORK_TIMEOUT -> new SocketTimeoutException(scenario.errorMessage());
+            case APPLICATION_ANOMALY -> new RuntimeException(scenario.errorMessage());
+            case SERVICE_UNAVAILABLE -> new IllegalStateException(scenario.errorMessage());
+            case MEMORY_PRESSURE -> new OutOfMemoryError(scenario.errorMessage());
+            case CPU_OVERLOAD -> new IllegalStateException(scenario.errorMessage());
+            case QUEUE_OVERFLOW -> new RejectedExecutionException(scenario.errorMessage());
+        };
     }
 
     private int randomBetween(int minInclusive, int maxInclusive) {

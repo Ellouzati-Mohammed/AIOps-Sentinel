@@ -83,6 +83,7 @@ public class LogService {
                 .and(Markers.append("errorCode", context.errorCode()))
                 .and(Markers.append("errorMessage", context.errorMessage()))
                 .and(Markers.append("anomalyType", context.anomalyType()))
+                .and(Markers.append("errorSequence", context.errorSequence()))
                 .and(Markers.append("applicationVersion", APPLICATION_VERSION))
                 .and(Markers.append("hostName", HOST_NAME));
     }
