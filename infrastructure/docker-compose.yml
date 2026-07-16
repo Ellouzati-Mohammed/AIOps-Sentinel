@@ -1,13 +1,77 @@
 services:
 
+  # ==========================================================
+  # PostgreSQL
+  # ==========================================================
+  postgres:
+    image: postgres:17-alpine
+    container_name: postgres
+
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+
+    ports:
+      - "${POSTGRES_PORT}:5432"
+
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+    networks:
+      - backend
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+
+
+  # ==========================================================
+  # Redis
+  # ==========================================================
+  redis:
+    image: redis:8-alpine
+    container_name: redis
+
+    restart: unless-stopped
+
+    command: redis-server --appendonly yes
+
+    ports:
+      - "${REDIS_PORT}:6379"
+
+    volumes:
+      - redis-data:/data
+
+    networks:
+      - backend
+
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+
+
+  # ==========================================================
+  # Elasticsearch
+  # ==========================================================
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:${ELASTIC_VERSION}
     container_name: elasticsearch
 
+    restart: unless-stopped
+
     environment:
-      - discovery.type=single-node
-      - ES_JAVA_OPTS=${ES_JAVA_OPTS}
-      - xpack.security.enabled=false
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      ES_JAVA_OPTS: ${ES_JAVA_OPTS}
 
     ports:
       - "${ELASTIC_PORT}:9200"
@@ -16,27 +80,123 @@ services:
       - elasticsearch-data:/usr/share/elasticsearch/data
 
     networks:
-      - sentinel-network
-    
+      - observability
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -fs http://localhost:9200 >/dev/null || exit 1"
+        ]
+      interval: 20s
+      timeout: 10s
+      retries: 10
+
+
+
+  # ==========================================================
+  # Kibana
+  # ==========================================================
   kibana:
     image: docker.elastic.co/kibana/kibana:${ELASTIC_VERSION}
     container_name: kibana
 
+    restart: unless-stopped
+
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+
     environment:
-      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
 
     ports:
       - "${KIBANA_PORT}:5601"
 
+    networks:
+      - observability
+
+
+
+  # ==========================================================
+  # Prometheus
+  # ==========================================================
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    container_name: prometheus
+
+    restart: unless-stopped
+
     depends_on:
-      - elasticsearch
+      - otel-collector
+
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+
+    ports:
+      - "${PROMETHEUS_PORT}:9090"
+
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
 
     networks:
-      - sentinel-network
+      - observability
+
+
+
+  # ==========================================================
+  # OpenTelemetry Collector
+  # ==========================================================
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.131.1
+    container_name: otel-collector
+
+    restart: unless-stopped
+
+    command:
+      - "--config=/etc/otelcol/config.yaml"
+
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+      - "8888:8888"
+      - "9464:9464"
+
+    volumes:
+      - ./otel/otel-collector-config.yml:/etc/otelcol/config.yaml:ro
+
+    networks:
+      - backend
+      - observability
+
+
+
+# ==========================================================
+# Volumes
+# ==========================================================
 
 volumes:
+
+  postgres-data:
+
+  redis-data:
+
   elasticsearch-data:
 
+  prometheus-data:
+
+
+
+# ==========================================================
+# Networks
+# ==========================================================
+
 networks:
-  sentinel-network:
+
+  backend:
+    driver: bridge
+
+  observability:
     driver: bridge
