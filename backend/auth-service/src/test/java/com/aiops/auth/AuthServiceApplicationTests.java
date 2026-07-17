@@ -1,10 +1,10 @@
-package com.aiops.spring_app;
+package com.aiops.auth;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class SpringAppApplicationTests {
+class AuthServiceApplicationTests {
 
 	@Test
 	void contextLoads() {
