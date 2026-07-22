@@ -32,3 +32,4 @@ Thumbs.db
 # Docker
 **/*.pid
 **/*.seed
+backend/aiops-api/venv/
