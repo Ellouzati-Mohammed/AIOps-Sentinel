@@ -41,12 +41,38 @@ def get_templates(
     return templates
 
 
+# =====================================================
+# GET TEMPLATE BY ID
+# =====================================================
+
+@router.get("/{id}")
+def get_template_by_event(
+    id: str,
+    db: Session = Depends(get_db)
+):
+
+    template = db.query(
+        HDFSTemplate
+    ).filter(
+        HDFSTemplate.id == id
+    ).first()
+
+
+    if template is None:
+
+        raise HTTPException(
+            status_code=404,
+            detail="Template not found"
+        )
+
+
+    return template
 
 # =====================================================
 # GET TEMPLATE BY EVENT ID
 # =====================================================
 
-@router.get("/{event_id}")
+@router.get("/event/{event_id}")
 def get_template_by_event(
     event_id: str,
     db: Session = Depends(get_db)
@@ -84,9 +110,7 @@ def import_templates(
 
 
     FILE_PATH = (
-        "C:/Users/Ellou/Downloads/"
-        "HDFS_1/Pro/output/hdfs_data/"
-        "event_templates_drain3.csv"
+        ""
     )
 
 

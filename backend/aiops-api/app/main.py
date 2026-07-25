@@ -1,36 +1,39 @@
 from fastapi import FastAPI
 
-from app.database import engine, Base
-from app import models
-
-
 from app.routers import (
     health,
-    sequences,
+    hdfs_sequences,
+    hdfs_templates,
     predictions,
-    models as models_router
+    models
 )
 
 
-
-Base.metadata.create_all(
-    bind=engine
-)
-
+# ============================
+# Création application FastAPI
+# ============================
 
 app = FastAPI(
     title="AIOps Sentinel API",
-    version="1.0"
+    description="API for HDFS Logs Anomaly Detection",
+    version="1.0.0"
 )
 
 
+# ============================
+# Inclusion des routes
+# ============================
 
 app.include_router(
     health.router
 )
 
 app.include_router(
-    sequences.router
+    hdfs_sequences.router
+)
+
+app.include_router(
+    hdfs_templates.router
 )
 
 app.include_router(
@@ -38,14 +41,19 @@ app.include_router(
 )
 
 app.include_router(
-    models_router.router
+    models.router
 )
 
 
+# ============================
+# Root endpoint
+# ============================
 
 @app.get("/")
 def root():
 
     return {
-        "message": "AIOps Sentinel running"
+        "application": "AIOps Sentinel",
+        "status": "running",
+        "version": "1.0.0"
     }
