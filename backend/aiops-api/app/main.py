@@ -4,8 +4,18 @@ from app.database import engine, Base
 from app import models
 
 
-# Création des tables
-Base.metadata.create_all(bind=engine)
+from app.routers import (
+    health,
+    sequences,
+    predictions,
+    models as models_router
+)
+
+
+
+Base.metadata.create_all(
+    bind=engine
+)
 
 
 app = FastAPI(
@@ -14,8 +24,28 @@ app = FastAPI(
 )
 
 
+
+app.include_router(
+    health.router
+)
+
+app.include_router(
+    sequences.router
+)
+
+app.include_router(
+    predictions.router
+)
+
+app.include_router(
+    models_router.router
+)
+
+
+
 @app.get("/")
 def root():
+
     return {
-        "message": "AIOps Sentinel API running"
+        "message": "AIOps Sentinel running"
     }

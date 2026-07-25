@@ -4,7 +4,6 @@ from sqlalchemy import (
     String,
     Float,
     Text,
-    Boolean,
     DateTime,
     ForeignKey,
     JSON
@@ -16,13 +15,15 @@ from datetime import datetime
 from app.database import Base
 
 
-# ============================
-# Table: hdfs_sequences
-# ============================
 
-class HDFSSequence(Base):
+# ==================================
+# Table: hdfs_templates
+# ==================================
 
-    __tablename__ = "hdfs_sequences"
+class HDFSTemplate(Base):
+
+    __tablename__ = "hdfs_templates"
+
 
     id = Column(
         Integer,
@@ -30,51 +31,19 @@ class HDFSSequence(Base):
         index=True
     )
 
-    block_id = Column(
-        String(100),
+
+    event_id = Column(
+        String(20),
         unique=True,
         nullable=False
     )
 
-    event_sequence = Column(
-        JSON,
-        nullable=False
-    )
 
-    event_templates = Column(
+    template = Column(
         Text,
-        nullable=True
-    )
-
-    label = Column(
-        String(20),
         nullable=False
     )
 
-    num_events = Column(
-        Integer,
-        nullable=False
-    )
-
-    duration = Column(
-        Float,
-        nullable=True
-    )
-
-    num_info = Column(
-        Integer,
-        default=0
-    )
-
-    num_warn = Column(
-        Integer,
-        default=0
-    )
-
-    num_error = Column(
-        Integer,
-        default=0
-    )
 
     created_at = Column(
         DateTime,
@@ -82,7 +51,81 @@ class HDFSSequence(Base):
     )
 
 
-    # Relation avec predictions
+
+# ==================================
+# Table: hdfs_sequences
+# ==================================
+
+class HDFSSequence(Base):
+
+    __tablename__ = "hdfs_sequences"
+
+
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True
+    )
+
+
+    block_id = Column(
+        String(100),
+        unique=True,
+        nullable=False
+    )
+
+
+    # Exemple:
+    # ["E1","E2","E1","E3"]
+
+    event_sequence = Column(
+        JSON,
+        nullable=False
+    )
+
+
+    label = Column(
+        String(20),
+        nullable=False
+    )
+
+
+    num_events = Column(
+        Integer,
+        nullable=False
+    )
+
+
+    duration = Column(
+        Float,
+        nullable=True
+    )
+
+
+    num_info = Column(
+        Integer,
+        default=0
+    )
+
+
+    num_warn = Column(
+        Integer,
+        default=0
+    )
+
+
+    num_error = Column(
+        Integer,
+        default=0
+    )
+
+
+    created_at = Column(
+        DateTime,
+        default=datetime.utcnow
+    )
+
+
     predictions = relationship(
         "Prediction",
         back_populates="sequence"
@@ -90,9 +133,9 @@ class HDFSSequence(Base):
 
 
 
-# ============================
+# ==================================
 # Table: predictions
-# ============================
+# ==================================
 
 class Prediction(Base):
 
@@ -139,7 +182,6 @@ class Prediction(Base):
     )
 
 
-    # Relation inverse
     sequence = relationship(
         "HDFSSequence",
         back_populates="predictions"
@@ -147,9 +189,9 @@ class Prediction(Base):
 
 
 
-# ============================
+# ==================================
 # Table: model_info
-# ============================
+# ==================================
 
 class ModelInfo(Base):
 
