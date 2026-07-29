@@ -33,3 +33,49 @@ Thumbs.db
 **/*.pid
 **/*.seed
 backend/aiops-api/venv/
+
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# Pytest cache
+.pytest_cache/
+__pycache__/
+
+# Coverage reports
+.coverage
+htmlcov/
+
+# Type checking
+.mypy_cache/
+.pyright/
+
+# Jupyter notebooks
+.ipynb_checkpoints/
+
+# Python build files
+build/
+dist/
+*.egg-info/
+
+# Environment variables
+.env
+.env.*
+
+# Logs
+*.log
+
+# IDE files
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
