@@ -1,17 +1,21 @@
 import torch
 import torch.nn as nn
 
-from app.services.preprocessor import (
+from app.services.preprocessing import (
     prepare_sequence,
     prepare_numeric_features
 )
+
+from pathlib import Path
 
 
 # ============================================================
 # Configuration
 # ============================================================
 
-MODEL_PATH = "app/ml/best_bilstm_model.pth"
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+
+MODEL_PATH = BASE_DIR / "ml" / "best_bilstm_model.pth"
 
 DEVICE = torch.device(
     "cuda" if torch.cuda.is_available() else "cpu"
@@ -36,6 +40,7 @@ class BiLSTMClassifier(nn.Module):
 
         super().__init__()
 
+        # Embedding
 
         self.embedding = nn.Embedding(
             num_embeddings=vocab_size,
@@ -43,6 +48,8 @@ class BiLSTMClassifier(nn.Module):
             padding_idx=0
         )
 
+
+        # BiLSTM
 
         self.lstm = nn.LSTM(
             input_size=embedding_dim,
@@ -53,6 +60,8 @@ class BiLSTMClassifier(nn.Module):
             dropout=dropout
         )
 
+
+        # Branche features numériques
 
         self.numeric_branch = nn.Sequential(
 
@@ -67,6 +76,8 @@ class BiLSTMClassifier(nn.Module):
 
         )
 
+
+        # Classifieur final
 
         self.classifier = nn.Sequential(
 
@@ -104,15 +115,17 @@ class BiLSTMClassifier(nn.Module):
         numeric
     ):
 
-        x = self.embedding(
-            sequence
-        )
+        # Embedding
+
+        x = self.embedding(sequence)
 
 
-        _, (hidden, _) = self.lstm(
-            x
-        )
+        # BiLSTM
 
+        _, (hidden, _) = self.lstm(x)
+
+
+        # concat forward + backward
 
         sequence_features = torch.cat(
             (
@@ -123,10 +136,14 @@ class BiLSTMClassifier(nn.Module):
         )
 
 
+        # Features numériques
+
         numeric_features = self.numeric_branch(
             numeric
         )
 
+
+        # Fusion
 
         features = torch.cat(
             (
@@ -136,6 +153,8 @@ class BiLSTMClassifier(nn.Module):
             dim=1
         )
 
+
+        # Classification
 
         output = self.classifier(
             features
@@ -153,14 +172,12 @@ class BiLSTMClassifier(nn.Module):
 _model = None
 
 
-
 def load_model():
 
     global _model
 
 
     if _model is None:
-
 
         _model = BiLSTMClassifier(
 
@@ -177,7 +194,6 @@ def load_model():
             dropout=0.30
 
         ).to(DEVICE)
-
 
 
         state_dict = torch.load(
@@ -202,34 +218,42 @@ def load_model():
 # Prediction
 # ============================================================
 
-def predict(sequence):
-
+def predict(
+    event_sequence,
+    num_events,
+    duration,
+    num_info,
+    num_warn
+):
 
     model = load_model()
 
 
+    # Préparation séquence E1,E2... -> Tensor
+
     sequence_tensor = prepare_sequence(
-        sequence.event_sequence
+        event_sequence
     ).to(DEVICE)
 
 
+    # Préparation features numériques
 
     numeric_tensor = prepare_numeric_features(
 
-        sequence.num_events,
+        num_events,
 
-        sequence.duration,
+        duration,
 
-        sequence.num_info,
+        num_info,
 
-        sequence.num_warn
+        num_warn
 
     ).to(DEVICE)
 
 
+    # Inférence
 
     with torch.no_grad():
-
 
         logits = model(
 
@@ -249,10 +273,16 @@ def predict(sequence):
 
 
 
+    # Décision
+
     label = (
+
         "ANOMALY"
+
         if score >= 0.5
+
         else "NORMAL"
+
     )
 
 
