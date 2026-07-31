@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from app.database import SessionLocal
 from app.models import Prediction, HDFSSequence
 
+from app.services.predictor import predict as predict_anomaly
 
 router = APIRouter(
     prefix="/api/predictions",
@@ -30,79 +31,41 @@ def get_db():
 # POST /api/predictions/predict
 # Faire une prédiction
 # =====================================================
+from fastapi import Body
+
 
 @router.post("/predict")
 def predict(
-    block_id: str,
-    db: Session = Depends(get_db)
+
+    event_sequence: list[str] = Body(...),
+
+    num_events: int = Body(...),
+
+    duration: float = Body(...),
+
+    num_info: int = Body(...),
+
+    num_warn: int = Body(...)
+
 ):
 
 
-    # chercher la séquence HDFS
+    anomaly_score, result = predict_anomaly(
 
-    sequence = db.query(
-        HDFSSequence
-    ).filter(
-        HDFSSequence.block_id == block_id
-    ).first()
+        event_sequence,
 
+        num_events,
 
+        duration,
 
-    if sequence is None:
+        num_info,
 
-        raise HTTPException(
-            status_code=404,
-            detail="HDFS sequence not found"
-        )
-
-
-    # ===============================
-    # Appel modèle IA
-    # ===============================
-
-    # Ici on appellera le modèle BiLSTM
-
-    # Exemple temporaire
-
-    anomaly_score = 0.05
-
-
-    if anomaly_score > 0.5:
-
-        result = "ANOMALY"
-
-    else:
-
-        result = "NORMAL"
-
-
-
-    # sauvegarde résultat
-
-    prediction = Prediction(
-
-        sequence_id=sequence.id,
-
-        model_name="BiLSTM-HDFS",
-
-        prediction=result,
-
-        anomaly_score=anomaly_score
+        num_warn
 
     )
 
 
-    db.add(prediction)
-
-    db.commit()
-
-    db.refresh(prediction)
-
-
-
     return {
-
-        "block_id": block_id,
 
         "prediction": result,
 
@@ -111,8 +74,6 @@ def predict(
         "model": "BiLSTM-HDFS"
 
     }
-
-
 
 # =====================================================
 # GET /api/predictions
