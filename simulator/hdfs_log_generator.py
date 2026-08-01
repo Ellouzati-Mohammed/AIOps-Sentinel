@@ -1,52 +1,119 @@
-import time
 import random
+import time
+import os
 from datetime import datetime
 
 
 LOG_FILE = "simulator/logs_hdfs.log"
 
 
-# ==================================================
-# Templates HDFS normaux
-# ==================================================
+# ==========================================
+# Seulement 2 templates HDFS pour le test
+# ==========================================
 
-NORMAL_EVENTS = [
+EVENT_TEMPLATES = [
 
     "Receiving block {block} src: /{ip}:{port} dest: /{ip2}:{port2}",
 
-    "Received block {block} of size {size} from /{ip}",
+    "BLOCK* NameSystem.allocateBlock: <*> {block}",
 
-    "PacketResponder {block} for block {block}",
+    "PacketResponder <*> for block {block} <*>",
+
+    "Received block {block} of size {size} from /{ip}",
 
     "BLOCK* NameSystem.addStoredBlock: blockMap updated: {ip}:{port} is added to {block} size {size}",
 
+    "Received block {block} src: /{ip}:{port} dest: /{ip2}:{port2} of size {size}",
+
+    "{ip}:{port}:Transmitted block {block} to /{ip2}:{port2}",
+
+    "{ip}:{port} Starting thread to transfer block {block} to {ip2}:{port2}, {ip}:{port}",
+
+    "BLOCK* ask {ip}:{port} to replicate {block} to datanode(s) {ip2}:{port2} {ip}:{port}",
+
+    "{ip}:{port} Served block {block} to /{ip}",
+
+    "BLOCK* ask {ip}:{port} to replicate {block} to datanode(s) {ip2}:{port2}",
+
+    "{ip}:{port} Starting thread to transfer block {block} to {ip2}:{port2}",
+
     "Verification succeeded for {block}",
-]
 
+    "writeBlock {block} received exception {exception}",
 
-# ==================================================
-# Templates HDFS anomalies
-# ==================================================
-
-ANOMALY_EVENTS = [
+    "PacketResponder {block} <*> Exception {exception}",
 
     "writeBlock {block} received exception java.io.IOException: Could not read from stream",
 
-    "PacketResponder {block} Exception java.io.IOException: Broken pipe",
+    "Deleting block {block} file {path}{block}",
 
-    "Exception in receiveBlock for {block} java.io.IOException: Connection reset by peer",
+    "Receiving empty packet for block {block}",
+
+    "Exception in receiveBlock for block {block} java.io.IOException: Connection reset by peer",
 
     "writeBlock {block} received exception java.io.IOException: Connection reset by peer",
 
-    "PacketResponder {block} Exception java.net.SocketTimeoutException",
+    "BLOCK* NameSystem.addStoredBlock: Redundant addStoredBlock request received for {block} on {ip}:{port} size {size}",
 
-    "Deleting block {block} file /data/{block}",
+    "PacketResponder {block} <*> Exception java.net.SocketTimeoutException",
+
+    "PacketResponder {block} <*> Exception java.io.InterruptedIOException",
+
+    "Exception in receiveBlock for block {block} <*>",
+
+    "Changing block file offset of block {block} from 0 to {offset}",
+
+    "{ip}:{port}:Exception writing block {block} to mirror {ip2}:{port2}",
+
+    "Exception in receiveBlock for block {block} java.io.InterruptedIOException",
+
+    "writeBlock {block} received exception java.io.InterruptedIOException",
+
+    "PacketResponder {block} <*> Exception java.io.IOException: Broken pipe",
+
+    "writeBlock {block} received exception java.io.IOException: Block {block} is valid, and cannot be written to.",
+
+    "{ip}:{port}:Failed to transfer {block} to {ip2}:{port2} got java.io.IOException: Connection reset by peer",
+
+    "BLOCK* NameSystem.delete: {block} is added to invalidSet of {ip}:{port}",
+
+    "Unexpected error trying to delete block {block}. BlockInfo not found in volumeMap.",
+
+    "BLOCK* NameSystem.addStoredBlock: addStoredBlock request received for {block} on {ip}:{port} size {size} But it does not belong to any file.",
+
+    "{ip}:{port}:Got exception while serving {block} to /{ip}",
+
+    "PacketResponder {block} <*> Exception java.io.IOException: Connection reset by peer",
+
+    "Exception in receiveBlock for block {block} java.net.SocketTimeoutException",
+
+    "writeBlock {block} received exception java.net.SocketTimeoutException",
+
+    "Reopen Block {block}",
+
+    "BLOCK* Removing block {block} from neededReplications as it does not belong to any file.",
+
+    "PendingReplicationMonitor timed out block {block}",
+
+    "writeBlock {block} received exception java.io.IOException: <*> <*>",
+
+    "PacketResponder {block} 1 Exception java.io.InterruptedIOException",
+
+    "writeBlock {block} received exception java.net.NoRouteToHostException: No route to host",
+
+    "Adding an already existing block {block}",
+
+    "Exception in receiveBlock for block {block} java.io.IOException: Broken pipe",
+
+    "PacketResponder {block} 1 Exception java.io.IOException: The stream is closed"
+
 ]
 
 
-# ==================================================
-# Génération IP aléatoire
-# ==================================================
+# ==========================================
+# Génération IP
+# ==========================================
+
 
 def random_ip():
 
@@ -56,12 +123,11 @@ def random_ip():
     )
 
 
-# ==================================================
-# Création d'une ligne de log
-# ==================================================
+# ==========================================
+# Création d'un log
+# ==========================================
 
 def create_log(template, block_id):
-
 
     values = {
 
@@ -93,6 +159,33 @@ def create_log(template, block_id):
                 134217728,
                 268435456
             ]
+        ),
+
+        "offset": random.randint(
+            100,
+            10000
+        ),
+
+        "path": random.choice(
+            [
+                "/data/",
+                "/dfs/data/",
+                "/tmp/hdfs/"
+            ]
+        ),
+
+        "exception": random.choice(
+            [
+                "java.io.IOException: Broken pipe",
+                "java.io.IOException: Connection reset by peer",
+                "java.io.IOException: Could not read from stream",
+                "java.net.SocketTimeoutException"
+            ]
+        ),
+
+        "extra": random.randint(
+            1,
+            10
         )
     }
 
@@ -107,20 +200,16 @@ def create_log(template, block_id):
     )
 
 
-    log = (
+    return (
         f"{timestamp} "
         f"INFO dfs.DataNode: "
         f"{message}\n"
     )
 
 
-    return log
-
-
-
-# ==================================================
-# Ecriture temps réel dans fichier
-# ==================================================
+# ==========================================
+# Ecriture dans fichier
+# ==========================================
 
 def write_log(log):
 
@@ -131,161 +220,195 @@ def write_log(log):
 
         file.write(log)
 
-        # force l'écriture immédiate
         file.flush()
 
 
-    print(
-        log.strip()
+
+# ==========================================
+# Gestion des blocs
+# ==========================================
+
+NEXT_BLOCK_ID = 100000
+
+MAX_ACTIVE_BLOCKS = 6
+
+
+
+def create_block():
+
+    global NEXT_BLOCK_ID
+
+
+    block_id = (
+        f"blk_{NEXT_BLOCK_ID}"
     )
 
 
+    NEXT_BLOCK_ID += 1
 
-# ==================================================
-# Création des blocs actifs
-# ==================================================
+
+    # nombre de logs du bloc
+
+    number_of_logs = random.randint(
+        5,
+        20
+    )
+
+
+    sequence = random.choices(
+        EVENT_TEMPLATES,
+        k=number_of_logs
+    )
+
+
+    return block_id, {
+
+        "logs": sequence,
+
+        "total": number_of_logs
+
+    }
+
+
 
 def create_blocks():
-
 
     blocks = {}
 
 
-    # entre 3 et 9 blocs simultanés
+    for _ in range(MAX_ACTIVE_BLOCKS):
 
-    number_of_blocks = random.randint(
-        3,
-        9
-    )
+        block_id, data = create_block()
 
-
-    for i in range(
-        number_of_blocks
-    ):
-
-
-        block_id = (
-            f"blk_{100000+i}"
-        )
-
-
-        # 20% des blocs sont anormaux
-
-        is_anomaly = (
-            random.random() < 0.2
-        )
-
-
-        if is_anomaly:
-
-            events = random.sample(
-                ANOMALY_EVENTS,
-                random.randint(2,4)
-            )
-
-
-        else:
-
-            events = random.sample(
-                NORMAL_EVENTS,
-                random.randint(3,5)
-            )
-
-
-        blocks[block_id] = events
-
+        blocks[block_id] = data
 
 
     return blocks
 
 
 
-# ==================================================
+# ==========================================
+# Affichage état seulement
+# ==========================================
+
+def display_status(blocks):
+
+    os.system(
+        "cls" if os.name == "nt" else "clear"
+    )
+
+
+    print("=" * 65)
+
+    print(
+        "          HDFS REALTIME SIMULATOR"
+    )
+
+    print("=" * 65)
+
+
+    print(
+        f"{'Block':<15}"
+        f"{'Total':<10}"
+        f"{'Restant':<12}"
+        f"{'Ecrit':<10}"
+    )
+
+
+    print("-" * 65)
+
+
+    for block_id, data in blocks.items():
+
+
+        total = data["total"]
+
+        remaining = len(
+            data["logs"]
+        )
+
+        written = total - remaining
+
+
+        print(
+            f"{block_id:<15}"
+            f"{total:<10}"
+            f"{remaining:<12}"
+            f"{written:<10}"
+        )
+
+
+    print("-" * 65)
+
+
+
+# ==========================================
 # Programme principal
-# ==================================================
+# ==========================================
 
 def main():
 
 
     print(
-        "HDFS realtime simulator started..."
+        "Starting HDFS simulator..."
     )
 
 
     blocks = create_blocks()
 
 
-    print(
-        "\nActive blocks:"
-    )
-
-    for block in blocks:
-
-        print(
-            block
-        )
-
 
     while True:
 
 
-        # blocs qui ont encore des événements
-
-        active_blocks = [
-
-            block
-
-            for block in blocks
-
-            if len(blocks[block]) > 0
-
-        ]
+        display_status(
+            blocks
+        )
 
 
-
-        # tous les blocs terminés
-
-        if not active_blocks:
-
-
-            print(
-                "\nCreating new blocks..."
-            )
-
-
-            blocks = create_blocks()
-
-
-            continue
-
-
-
-        # choisir un bloc aléatoire
+        # choisir un bloc actif
 
         block_id = random.choice(
-            active_blocks
+            list(blocks.keys())
         )
 
 
 
-        # récupérer son prochain événement
+        # récupérer un événement
 
-        event = blocks[block_id].pop(0)
+        template = blocks[block_id]["logs"].pop(0)
 
 
+
+        # créer le log
 
         log = create_log(
-            event,
+            template,
             block_id
         )
 
 
 
-        # ajouter le log
+        # écrire dans fichier
 
         write_log(
             log
         )
+
+
+
+        # vérifier fin du bloc
+
+        if len(blocks[block_id]["logs"]) == 0:
+
+
+            del blocks[block_id]
+
+
+            new_block, data = create_block()
+
+
+            blocks[new_block] = data
 
 
 
