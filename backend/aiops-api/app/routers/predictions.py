@@ -72,7 +72,6 @@ def predict(
         "score": anomaly_score,
 
         "model": "BiLSTM-HDFS"
-
     }
 
 # =====================================================
