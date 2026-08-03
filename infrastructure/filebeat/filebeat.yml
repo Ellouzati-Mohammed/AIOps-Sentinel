@@ -1,0 +1,16 @@
+filebeat.inputs:
+  - type: filestream
+    id: hdfs_logs
+    enabled: true
+
+    paths:
+      - /logs/logs_hdfs.log
+
+output.console:
+  pretty: true
+
+monitoring.enabled: false
+
+logging.level: error
+logging.to_files: false
+logging.to_syslog: false

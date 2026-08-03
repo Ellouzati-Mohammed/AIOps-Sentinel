@@ -34,28 +34,7 @@ services:
   # ==========================================================
   # Redis
   # ==========================================================
-  redis:
-    image: redis:8-alpine
-    container_name: redis
-
-    restart: unless-stopped
-
-    command: redis-server --appendonly yes
-
-    ports:
-      - "${REDIS_PORT}:6379"
-
-    volumes:
-      - redis-data:/data
-
-    networks:
-      - backend
-
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+  
 
 
 
@@ -121,57 +100,18 @@ services:
   # ==========================================================
   # Prometheus
   # ==========================================================
-  prometheus:
-    image: prom/prometheus:v3.5.0
-    container_name: prometheus
-
-    restart: unless-stopped
-
-    depends_on:
-      - otel-collector
-
-    command:
-      - "--config.file=/etc/prometheus/prometheus.yml"
-      - "--storage.tsdb.path=/prometheus"
-
-    ports:
-      - "${PROMETHEUS_PORT}:9090"
-
-    volumes:
-      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - prometheus-data:/prometheus
-
-    networks:
-      - observability
 
 
 
   # ==========================================================
   # OpenTelemetry Collector
   # ==========================================================
-  otel-collector:
-    image: otel/opentelemetry-collector-contrib:0.131.1
-    container_name: otel-collector
+ 
 
-    restart: unless-stopped
-
-    command:
-      - "--config=/etc/otelcol/config.yaml"
-
-    ports:
-      - "4317:4317"
-      - "4318:4318"
-      - "8888:8888"
-      - "9464:9464"
-
-    volumes:
-      - ./otel/otel-collector-config.yml:/etc/otelcol/config.yaml:ro
-
-    networks:
-      - backend
-      - observability
-
-
+  # ==========================================================
+  # pgadmin 
+  # ==========================================================
+ 
   pgadmin:
     image: dpage/pgadmin4
     container_name: pgadmin
@@ -184,6 +124,32 @@ services:
     depends_on:
       - postgres
 
+
+
+  # ==========================================================
+  # filebeat 
+  # ==========================================================
+ 
+
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:8.18.0
+    container_name: filebeat
+
+    user: root
+
+    volumes:
+      - ./filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      - ../simulator:/logs:ro
+
+    command:
+      - filebeat
+      - -e
+      - --strict.perms=false
+
+    depends_on:
+      - elasticsearch
+
+    restart: unless-stopped
 # ==========================================================
 # Volumes
 # ==========================================================
