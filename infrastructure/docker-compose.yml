@@ -147,7 +147,36 @@ services:
       - --strict.perms=false
 
     depends_on:
-      - elasticsearch
+      - logstash
+
+    networks:
+      - backend
+    restart: unless-stopped
+    
+
+
+
+  # ==========================================================
+  # logstash 
+  # ==========================================================
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.18.0
+    container_name: logstash
+
+    ports:
+      - "5044:5044"
+
+    volumes:
+      - ./logstash/pipeline:/usr/share/logstash/pipeline:ro
+    environment:
+      XPACK_MONITORING_ENABLED: "false" #desactiver elastiquesearch
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+
+    networks:
+      - backend
 
     restart: unless-stopped
 # ==========================================================

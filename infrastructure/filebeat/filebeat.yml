@@ -6,11 +6,21 @@ filebeat.inputs:
     paths:
       - /logs/logs_hdfs.log
 
-output.console:
-  pretty: true
+output.logstash:
+  hosts: ["logstash:5044"]
+
+
+# Buffer interne Filebeat
+queue.mem:
+  events: 5000
+  flush.min_events: 10
+  flush.timeout: 10s
+
 
 monitoring.enabled: false
 
 logging.level: error
 logging.to_files: false
 logging.to_syslog: false
+
+
