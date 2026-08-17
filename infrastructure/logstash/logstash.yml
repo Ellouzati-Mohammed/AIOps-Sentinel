@@ -1,0 +1,6 @@
+http.host: 0.0.0.0
+pipeline.batch.delay: 1000
+pipeline.batch.size: 10
+pipeline.ordered: true
+pipeline.workers: 1
+xpack.monitoring.enabled: ${XPACK_MONITORING_ENABLED}

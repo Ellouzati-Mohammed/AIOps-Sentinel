@@ -5,7 +5,8 @@ from app.routers import (
     hdfs_sequences,
     hdfs_templates,
     predictions,
-    models
+    models,
+    logs
 )
 
 
@@ -42,6 +43,9 @@ app.include_router(
 
 app.include_router(
     models.router
+)
+app.include_router(
+    logs.router
 )
 
 

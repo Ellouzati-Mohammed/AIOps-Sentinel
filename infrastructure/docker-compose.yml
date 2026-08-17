@@ -169,6 +169,8 @@ services:
 
     volumes:
       - ./logstash/pipeline:/usr/share/logstash/pipeline:ro
+      - ./logstash/logstash.yml:/usr/share/logstash/config/logstash.yml
+      
     environment:
       XPACK_MONITORING_ENABLED: "false" #desactiver elastiquesearch
     depends_on:
