@@ -1,12 +1,11 @@
 import asyncio
-from datetime import datetime
 from typing import Dict, List, Optional
 
 from app.services.log_parser import LogParser
 from app.services.template_matcher import TemplateMatcher
 
 
-BLOCK_TIMEOUT = 10  # secondes
+BLOCK_TIMEOUT = 60  # secondes
 
 
 class BlockManager:
@@ -25,6 +24,9 @@ class BlockManager:
         # block_id -> timer asyncio
         self.timers: Dict[str, asyncio.Task] = {}
 
+        # Blocks terminés
+        self.completed_blocks: List[dict] = []
+
     # ==========================================================
     # TRAITEMENT D'UN BATCH
     # ==========================================================
@@ -34,16 +36,11 @@ class BlockManager:
         logs: List[str]
     ) -> List[dict]:
 
-        completed_blocks = []
-
         for log in logs:
+            await self.process_log(log)
 
-            block = await self.process_log(log)
-
-            if block is not None:
-                completed_blocks.append(block)
-
-        return completed_blocks
+        # Retourner les blocks qui étaient déjà terminés
+        return self.get_completed_blocks()
 
     # ==========================================================
     # TRAITEMENT D'UN LOG
@@ -61,13 +58,17 @@ class BlockManager:
         parsed = self.parser.parse(log)
 
         if parsed is None:
-            print("[BlockManager] Log ignoré : format invalide")
+            print(
+                "[BlockManager] Log ignoré : format invalide"
+            )
             return None
 
         block_id = parsed["block_id"]
 
         if block_id is None:
-            print("[BlockManager] Log ignoré : BlockId absent")
+            print(
+                "[BlockManager] Log ignoré : BlockId absent"
+            )
             return None
 
         # ------------------------------------------------------
@@ -79,25 +80,32 @@ class BlockManager:
         )
 
         if template_result is None:
+
             print(
                 f"[BlockManager] Template introuvable "
                 f"pour {block_id}"
             )
+
             return None
 
         event_id = template_result["event_id"]
 
         # ------------------------------------------------------
-        # 3. Créer le block s'il n'existe pas
+        # 3. Créer le block
         # ------------------------------------------------------
 
         if block_id not in self.blocks:
 
             self.blocks[block_id] = {
+
                 "event_sequence": [],
+
                 "first_time": parsed["timestamp"],
+
                 "last_time": parsed["timestamp"],
+
                 "num_info": 0,
+
                 "num_warn": 0
             }
 
@@ -116,31 +124,35 @@ class BlockManager:
         )
 
         # ------------------------------------------------------
-        # 5. Mettre à jour les timestamps
+        # 5. Timestamp
         # ------------------------------------------------------
 
         timestamp = parsed["timestamp"]
 
         if timestamp < block["first_time"]:
+
             block["first_time"] = timestamp
 
         if timestamp > block["last_time"]:
+
             block["last_time"] = timestamp
 
         # ------------------------------------------------------
-        # 6. Compter INFO / WARN
+        # 6. INFO / WARN
         # ------------------------------------------------------
 
         level = parsed["level"].upper()
 
         if level == "INFO":
+
             block["num_info"] += 1
 
         elif level == "WARN":
+
             block["num_warn"] += 1
 
         # ------------------------------------------------------
-        # 7. Reset du timer
+        # 7. Reset timer
         # ------------------------------------------------------
 
         self._reset_timer(block_id)
@@ -151,18 +163,25 @@ class BlockManager:
     # TIMER
     # ==========================================================
 
-    def _reset_timer(self, block_id: str):
+    def _reset_timer(
+        self,
+        block_id: str
+    ):
 
-        # Annuler l'ancien timer
-        old_timer = self.timers.get(block_id)
+        old_timer = self.timers.get(
+            block_id
+        )
 
         if old_timer is not None:
 
             old_timer.cancel()
 
-        # Créer un nouveau timer
-        self.timers[block_id] = asyncio.create_task(
-            self._finish_after_timeout(block_id)
+        self.timers[block_id] = (
+            asyncio.create_task(
+                self._finish_after_timeout(
+                    block_id
+                )
+            )
         )
 
     # ==========================================================
@@ -180,13 +199,15 @@ class BlockManager:
                 BLOCK_TIMEOUT
             )
 
-            block = self.blocks.get(block_id)
+            block = self.blocks.get(
+                block_id
+            )
 
             if block is None:
                 return
 
             # --------------------------------------------------
-            # Calcul duration
+            # Duration
             # --------------------------------------------------
 
             duration = (
@@ -194,25 +215,33 @@ class BlockManager:
                 - block["first_time"]
             ).total_seconds()
 
+            # --------------------------------------------------
+            # JSON FINAL DU BLOCK
+            # --------------------------------------------------
+
             result = {
-                "event_sequence": block[
-                    "event_sequence"
-                ],
 
-                "num_events": len(
-                    block["event_sequence"]
-                ),
+                "block_id": block_id,
 
-                "duration": duration,
+                "event_sequence":
+                    block["event_sequence"],
 
-                "num_info": block[
-                    "num_info"
-                ],
+                "num_events":
+                    len(block["event_sequence"]),
 
-                "num_warn": block[
-                    "num_warn"
-                ]
+                "duration":
+                    duration,
+
+                "num_info":
+                    block["num_info"],
+
+                "num_warn":
+                    block["num_warn"]
             }
+
+            # --------------------------------------------------
+            # Affichage
+            # --------------------------------------------------
 
             print(
                 "\n[BlockManager] BLOCK TERMINÉ"
@@ -248,7 +277,15 @@ class BlockManager:
             )
 
             # --------------------------------------------------
-            # Supprimer le block de la mémoire
+            # Stocker le JSON terminé
+            # --------------------------------------------------
+
+            self.completed_blocks.append(
+                result
+            )
+
+            # --------------------------------------------------
+            # Supprimer le block actif
             # --------------------------------------------------
 
             del self.blocks[block_id]
@@ -258,18 +295,28 @@ class BlockManager:
                 None
             )
 
-            # Pour l'instant on retourne seulement le résultat.
-            # Plus tard :
-            # result -> /predict
-
         except asyncio.CancelledError:
 
-            # Le timer a été reset parce qu'un
-            # nouveau log du même block est arrivé.
+            # Un nouveau log du même block est arrivé.
             pass
 
     # ==========================================================
-    # RÉCUPÉRER LES BLOCKS ACTIFS
+    # RÉCUPÉRER LES BLOCKS TERMINÉS
+    # ==========================================================
+
+    def get_completed_blocks(self) -> List[dict]:
+
+        completed = list(
+            self.completed_blocks
+        )
+
+        # Vider la liste après récupération
+        self.completed_blocks.clear()
+
+        return completed
+
+    # ==========================================================
+    # BLOCKS ACTIFS
     # ==========================================================
 
     def get_active_blocks(self):
