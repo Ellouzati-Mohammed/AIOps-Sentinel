@@ -248,11 +248,6 @@ class SystemMetrics(Base):
         index=True
     )
 
-    timestamp = Column(
-        DateTime,
-        nullable=False,
-        index=True
-    )
 
     logs_received = Column(
         Integer,
