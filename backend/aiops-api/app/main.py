@@ -4,8 +4,8 @@ from app.routers import (
     health,
     hdfs_sequences,
     hdfs_templates,
-    predictions,
     models,
+    system_metrics,
     logs
 )
 
@@ -39,11 +39,11 @@ app.include_router(
 )
 
 app.include_router(
-    predictions.router
+    models.router
 )
 
 app.include_router(
-    models.router
+    system_metrics.router
 )
 app.include_router(
     logs.router
