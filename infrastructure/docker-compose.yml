@@ -179,6 +179,7 @@ services:
 
     networks:
       - backend
+      - observability
 
     restart: unless-stopped
 # ==========================================================
