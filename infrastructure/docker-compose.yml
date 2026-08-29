@@ -154,7 +154,28 @@ services:
     restart: unless-stopped
     
 
+  # ==========================================================
+  # frontend react 
+  # ==========================================================
+  
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
 
+    container_name: frontend
+
+    ports:
+      - "5173:5173"
+
+    volumes:
+      - ../frontend:/app
+      - /app/node_modules
+
+    networks:
+      - backend
+
+    restart: unless-stopped
 
   # ==========================================================
   # logstash 
