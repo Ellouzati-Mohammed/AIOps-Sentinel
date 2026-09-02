@@ -101,7 +101,6 @@ try:
         db.merge(sequence)
 
 
-
     db.commit()
 
 

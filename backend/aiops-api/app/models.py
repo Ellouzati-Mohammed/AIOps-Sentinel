@@ -248,26 +248,7 @@ class SystemMetrics(Base):
         index=True
     )
 
-
     logs_received = Column(
-        Integer,
-        nullable=False,
-        default=0
-    )
-
-    logs_processed = Column(
-        Integer,
-        nullable=False,
-        default=0
-    )
-
-    logs_invalid = Column(
-        Integer,
-        nullable=False,
-        default=0
-    )
-
-    blocks_active = Column(
         Integer,
         nullable=False,
         default=0
