@@ -1,10 +1,11 @@
 import asyncio
 from typing import Dict, List, Optional
-
+from app.database import SessionLocal
+from app.models import HDFSSequence
 from app.services.log_parser import LogParser
 from app.services.template_matcher import TemplateMatcher
 from app.services.predictor import predict as predict_anomaly
-
+from app.models import HDFSSequence, Model
 
 # ==========================================================
 # CONFIGURATION
@@ -469,7 +470,57 @@ class BlockManager:
             print(
                 "=" * 70
             )
+            # ==================================================
+            # STOCKER LE BLOCK DANS POSTGRESQL
+            # ==================================================
 
+            db = SessionLocal()
+
+            try:
+                model = (
+                    db.query(Model)
+                    .filter(Model.name == "BiLSTM-HDFS")
+                    .first()
+                )
+                if model is None:
+                    raise Exception(
+                        "Le modèle BiLSTM-HDFS n'existe pas dans la table models"
+                    )
+
+                sequence = HDFSSequence(
+                    block_id=result["block_id"],
+                    event_sequence=result["event_sequence"],
+                    num_events=result["num_events"],
+                    duration=result["duration"],
+                    num_info=result["num_info"],
+                    num_warn=result["num_warn"],
+                    prediction=result["prediction"],
+                    score=result["score"],
+                    model_id=model.id,
+                )
+
+                db.add(sequence)
+                db.commit()
+                db.refresh(sequence)
+
+                print(
+                    f"[BlockManager] "
+                    f"Block {block_id} sauvegardé dans PostgreSQL "
+                    f"(id={sequence.id})"
+                )
+
+            except Exception as db_error:
+
+                db.rollback()
+
+                print(
+                    "[BlockManager] "
+                    f"Erreur sauvegarde PostgreSQL : {db_error}"
+                )
+
+            finally:
+
+                db.close()
             # ==================================================
             # STOCKER LE BLOCK TERMINÉ
             # ==================================================
