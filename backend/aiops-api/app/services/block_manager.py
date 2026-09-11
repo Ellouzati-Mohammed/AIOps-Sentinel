@@ -6,12 +6,13 @@ from app.services.log_parser import LogParser
 from app.services.template_matcher import TemplateMatcher
 from app.services.predictor import predict as predict_anomaly
 from app.models import HDFSSequence, Model
+from datetime import datetime
 
 # ==========================================================
 # CONFIGURATION
 # ==========================================================
 
-BLOCK_TIMEOUT = 20  # secondes après le dernier log
+BLOCK_TIMEOUT = 30  # secondes après le dernier log
 
 
 class BlockManager:
@@ -67,6 +68,9 @@ class BlockManager:
 
         Chaque block possède son propre timer.
         """
+        print(
+            f"\n[BlockManager] BATCH REÇU (nvlign) : {len(logs)} logs"
+        )
 
         for log in logs:
 
@@ -173,6 +177,7 @@ class BlockManager:
         block["event_sequence"].append(
             event_id
         )
+        
 
         # ------------------------------------------------------
         # 8. METTRE À JOUR LES TIMESTAMPS
@@ -260,10 +265,22 @@ class BlockManager:
             # Attendre 60 secondes depuis le dernier log
             # --------------------------------------------------
 
-            await asyncio.sleep(
-                BLOCK_TIMEOUT
+            print(
+                f"[DEBUG] TIMER START "
+                f"| block={block_id} "
+                f"| logs={len(self.blocks[block_id]['event_sequence'])} "
+                f"| heure={datetime.now().strftime('%H:%M:%S')} "
+                f"| attente={BLOCK_TIMEOUT}s"
             )
 
+            await asyncio.sleep(BLOCK_TIMEOUT)
+
+            print(
+                f"[DEBUG] TIMEOUT EXPIRE "
+                f"| block={block_id} "
+                f"| heure={datetime.now().strftime('%H:%M:%S')}"
+            )
+            
             # --------------------------------------------------
             # Récupérer le block
             # --------------------------------------------------
@@ -497,6 +514,7 @@ class BlockManager:
                     prediction=result["prediction"],
                     score=result["score"],
                     model_id=model.id,
+                    completed_at=datetime.utcnow()
                 )
 
                 db.add(sequence)

@@ -1,5 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+import asyncio
+from contextlib import asynccontextmanager
+
+from app.scheduler.metrics_scheduler import metrics_scheduler
 
 from app.routers import (
     health,
@@ -15,11 +19,28 @@ from app.routers import (
 # ============================
 # Création application FastAPI
 # ============================
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+
+    scheduler_task = asyncio.create_task(
+        metrics_scheduler()
+    )
+
+    yield
+
+    scheduler_task.cancel()
+
+    try:
+        await scheduler_task
+    except asyncio.CancelledError:
+        pass
+
 
 app = FastAPI(
     title="AIOps Sentinel API",
     description="API for HDFS Logs Anomaly Detection",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 
