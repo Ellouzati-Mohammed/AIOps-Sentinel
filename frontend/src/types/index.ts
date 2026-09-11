@@ -85,3 +85,37 @@ export interface DashboardMetric {
   deltaPositive: boolean;
   sparkline?: number[];
 }
+export interface SystemMetrics {
+  id: number;
+  timestamp: string;
+
+  logs_received: number;
+  logs_processed: number;
+  logs_invalid: number;
+
+  blocks_active: number;
+  blocks_completed: number;
+
+  normal_predictions: number;
+  anomaly_predictions: number;
+  total_predictions: number;
+
+  anomaly_rate: number;
+  normal_rate: number;
+
+  avg_score: number | null;
+  max_score: number | null;
+  min_score: number | null;
+
+  avg_block_duration: number | null;
+  max_block_duration: number | null;
+  min_block_duration: number | null;
+
+  avg_events_per_block: number | null;
+  max_events_per_block: number | null;
+
+  info_logs: number;
+  warn_logs: number;
+
+  created_at: string;
+}

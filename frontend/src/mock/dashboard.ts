@@ -1,4 +1,4 @@
-import type { ChartPoint, DashboardMetric, SystemHealthItem } from '../types';
+import type { ChartPoint, DashboardMetric } from '../types';
 
 export const dashboardMetrics: DashboardMetric[] = [
   { title: 'Logs Received', value: '1,284,392', delta: '+12.4%', deltaPositive: true, sparkline: [20, 30, 25, 40, 35, 52, 48, 70, 68, 88, 92, 104] },
@@ -32,20 +32,9 @@ export const recentAnomalies: Array<{
   events: number;
   duration: string;
   model: string;
-  detected: string;
-  status: 'Detected' | 'Warning';
 }> = [
-  { blockId: 'blk_-100001', prediction: 'ANOMALY', score: 0.97, events: 14, duration: '2.4s', model: 'BiLSTM-HDFS', detected: '2 min ago', status: 'Detected' },
-  { blockId: 'blk_-100008', prediction: 'ANOMALY', score: 0.91, events: 9, duration: '1.8s', model: 'BiLSTM-HDFS', detected: '7 min ago', status: 'Detected' },
-  { blockId: 'blk_-100015', prediction: 'ANOMALY', score: 0.88, events: 16, duration: '3.1s', model: 'BiLSTM-HDFS', detected: '12 min ago', status: 'Detected' },
-  { blockId: 'blk_-100021', prediction: 'ANOMALY', score: 0.84, events: 11, duration: '2.7s', model: 'BiLSTM-HDFS', detected: '21 min ago', status: 'Warning' },
-];
-
-export const systemHealth: SystemHealthItem[] = [
-  { name: 'API', status: 'Operational', value: '99.98%' },
-  { name: 'PostgreSQL', status: 'Operational' },
-  { name: 'Elasticsearch', status: 'Operational' },
-  { name: 'Logstash', status: 'Operational' },
-  { name: 'Filebeat', status: 'Operational' },
-  { name: 'ML Detection', status: 'Operational' },
+  { blockId: 'blk_-100001', prediction: 'ANOMALY', score: 0.97, events: 14, duration: '2.4s', model: 'BiLSTM-HDFS' },
+  { blockId: 'blk_-100008', prediction: 'ANOMALY', score: 0.91, events: 9, duration: '1.8s', model: 'BiLSTM-HDFS' },
+  { blockId: 'blk_-100015', prediction: 'ANOMALY', score: 0.88, events: 16, duration: '3.1s', model: 'BiLSTM-HDFS' },
+  { blockId: 'blk_-100021', prediction: 'ANOMALY', score: 0.84, events: 11, duration: '2.7s', model: 'BiLSTM-HDFS' },
 ];

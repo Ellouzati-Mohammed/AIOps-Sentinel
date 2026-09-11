@@ -6,6 +6,7 @@ import {
   Database,
   FileText,
 } from 'lucide-react';
+import { useSystemMetrics } from "../hooks/useSystemMetrics";
 import {
   Area,
   AreaChart,
@@ -21,32 +22,44 @@ import {
 import { ChartCard } from '../components/common/ChartCard';
 import { MetricCard } from '../components/common/MetricCard';
 import { PredictionBadge } from '../components/common/PredictionBadge';
-import { StatusBadge } from '../components/common/StatusBadge';
-import { dashboardMetrics, predictionSeries, throughputData, anomalyRateData, processingPerformanceData, recentAnomalies, systemHealth } from '../mock/dashboard';
+import { predictionSeries, throughputData, anomalyRateData, processingPerformanceData, recentAnomalies } from '../mock/dashboard';
 import { AppLayout } from '../components/layout/AppLayout';
 
 export function DashboardPage() {
+  const { data, loading, error } = useSystemMetrics();
+  const metrics = data[0];
   return (
     <AppLayout title="Dashboard" subtitle="Monitoring & anomaly detection overview">
       <div className="metrics-grid">
-        {dashboardMetrics.map((metric) => (
+       {metrics && (
+        <>
           <MetricCard
-            key={metric.title}
-            title={metric.title}
-            value={metric.value}
-            delta={metric.delta}
-            deltaPositive={metric.deltaPositive}
-            icon={
-              metric.title === 'Logs Received' ? <FileText size={16} /> :
-              metric.title === 'Logs Processed' ? <Activity size={16} /> :
-              metric.title === 'Active Blocks' ? <Blocks size={16} /> :
-              metric.title === 'Completed Blocks' ? <Database size={16} /> :
-              metric.title === 'Anomalies Detected' ? <AlertTriangle size={16} /> :
-              <Cpu size={16} />
-            }
-            sparkline={metric.sparkline}
+            title="Logs Received"
+            value={metrics.logs_received}
+            icon={<FileText size={16} />}
           />
-        ))}
+
+          
+
+          <MetricCard
+            title="Completed Blocks"
+            value={metrics.blocks_completed}
+            icon={<Database size={16} />}
+          />
+
+          <MetricCard
+            title="Anomalies Detected"
+            value={metrics.anomaly_predictions}
+            icon={<AlertTriangle size={16} />}
+          />
+
+          <MetricCard
+            title="Anomaly Rate"
+            value={`${metrics.anomaly_rate.toFixed(2)}%`}
+            icon={<Cpu size={16} />}
+          />
+        </>
+      )}
       </div>
 
       <div className="dashboard-grid">
@@ -115,62 +128,38 @@ export function DashboardPage() {
         </ChartCard>
       </div>
 
-      <div className="lower-grid">
-        <section className="panel">
-          <div className="panel-header">
-            <h3>Recent anomalies</h3>
-          </div>
+      <section className="panel">
+        <div className="panel-header">
+          <h3>Recent anomalies</h3>
+        </div>
 
-          <div className="table-shell">
-            <table>
-              <thead>
-                <tr>
-                  <th>Block ID</th>
-                  <th>Prediction</th>
-                  <th>Score</th>
-                  <th>Events</th>
-                  <th>Duration</th>
-                  <th>Model</th>
-                  <th>Detected</th>
-                  <th>Status</th>
+        <div className="table-shell">
+          <table>
+            <thead>
+              <tr>
+                <th>Block ID</th>
+                <th>Prediction</th>
+                <th>Score</th>
+                <th>Events</th>
+                <th>Duration</th>
+                <th>Model</th>
+              </tr>
+            </thead>
+            <tbody>
+              {recentAnomalies.map((row) => (
+                <tr key={row.blockId}>
+                  <td className="mono">{row.blockId}</td>
+                  <td><PredictionBadge prediction={row.prediction} /></td>
+                  <td>{row.score.toFixed(2)}</td>
+                  <td>{row.events}</td>
+                  <td>{row.duration}</td>
+                  <td>{row.model}</td>
                 </tr>
-              </thead>
-              <tbody>
-                {recentAnomalies.map((row) => (
-                  <tr key={row.blockId}>
-                    <td className="mono">{row.blockId}</td>
-                    <td><PredictionBadge prediction={row.prediction} /></td>
-                    <td>{row.score.toFixed(2)}</td>
-                    <td>{row.events}</td>
-                    <td>{row.duration}</td>
-                    <td>{row.model}</td>
-                    <td>{row.detected}</td>
-                    <td><StatusBadge status={row.status as 'Detected'} /></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        <section className="panel health-panel">
-          <div className="panel-header">
-            <h3>System health</h3>
-          </div>
-          <div className="health-list">
-            {systemHealth.map((item) => (
-              <div key={item.name} className="health-row">
-                <div className="health-name">{item.name}</div>
-                <div className="health-status">
-                  <span className="status-dot success" />
-                  <span>{item.status}</span>
-                  {item.value && <small>{item.value}</small>}
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      </div>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
     </AppLayout>
   );
 }
