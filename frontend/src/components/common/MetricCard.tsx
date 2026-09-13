@@ -4,27 +4,30 @@ import { ArrowDownRight, ArrowUpRight } from 'lucide-react';
 interface MetricCardProps {
   title: string;
   value: string;
-  delta: string;
-  deltaPositive: boolean;
+  delta?: string;
+  deltaPositive?: boolean;
   icon: ReactNode;
   sparkline?: number[];
+  subtext?: string;
 }
 
-export function MetricCard({ title, value, delta, deltaPositive, icon, sparkline }: MetricCardProps) {
+export function MetricCard({ title, value, delta, deltaPositive = true, icon, sparkline, subtext = 'Dernières 2 heures' }: MetricCardProps) {
   return (
     <div className="metric-card">
       <div className="metric-top-row">
         <div className="metric-icon">{icon}</div>
-        <div className={`metric-trend ${deltaPositive ? 'positive' : 'negative'}`}>
-          {deltaPositive ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
-          <span>{delta}</span>
-        </div>
+        {delta && (
+          <div className={`metric-trend ${deltaPositive ? 'positive' : 'negative'}`}>
+            {deltaPositive ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
+            <span>{delta}</span>
+          </div>
+        )}
       </div>
 
       <div className="metric-body">
         <div className="metric-label">{title}</div>
         <div className="metric-value">{value}</div>
-        <div className="metric-subtext">vs previous period</div>
+        <div className="metric-subtext">{subtext}</div>
       </div>
 
       {sparkline && (

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getSystemMetrics } from "../api/systemMetrics.api";
+import { getLatestSystemMetrics } from "../api/systemMetrics.api";
 import type { SystemMetrics } from "../types";
 
 interface UseSystemMetricsResult {
@@ -19,9 +19,9 @@ export function useSystemMetrics(): UseSystemMetricsResult {
       setLoading(true);
       setError(null);
 
-      const result = await getSystemMetrics();
+      const result = await getLatestSystemMetrics();
 
-      setData(result);
+      setData([result]);
     } catch (err) {
       console.error(
         "[Dashboard API] System Metrics Error:",
@@ -39,9 +39,9 @@ export function useSystemMetrics(): UseSystemMetricsResult {
   };
 
   useEffect(() => {
-    getSystemMetrics()
+    getLatestSystemMetrics()
       .then((result) => {
-        setData(result);
+        setData([result]);
       })
       .catch((err) => {
         console.error(
