@@ -425,9 +425,9 @@ def save_hourly_snapshot(
         # Save to database
         # ----------------------------------------------------
 
-        db.add(snapshot)
+       # db.add(snapshot)
 
-        db.commit()
+        #db.commit()
 
         db.refresh(snapshot)
 
