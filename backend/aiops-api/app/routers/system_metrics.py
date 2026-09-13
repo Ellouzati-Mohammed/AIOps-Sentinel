@@ -1,7 +1,7 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -97,6 +97,66 @@ def create_system_metrics(payload: SystemMetricsCreate, db: Session = Depends(ge
 def list_system_metrics(db: Session = Depends(get_db)):
     items = db.query(SystemMetrics).all()
     return [to_dict(item) for item in items]
+
+
+@router.get("/history")
+def get_system_metrics_history(
+    hours: int = Query(24, gt=0, description="Number of hours to retrieve"),
+    interval_hours: int = Query(
+        2,
+        gt=0,
+        description="Keep one latest snapshot per interval",
+    ),
+    db: Session = Depends(get_db),
+):
+    """Return one latest snapshot per interval in the requested time range."""
+    if interval_hours > hours:
+        raise HTTPException(
+            status_code=400,
+            detail="interval_hours must be less than or equal to hours",
+        )
+
+    now = datetime.utcnow()
+    cutoff = now - timedelta(hours=hours)
+    items = (
+        db.query(SystemMetrics)
+        .filter(SystemMetrics.created_at >= cutoff)
+        .order_by(SystemMetrics.created_at.desc(), SystemMetrics.id.desc())
+        .all()
+    )
+
+    selected_items = {}
+    for item in items:
+        elapsed_hours = (now - item.created_at).total_seconds() / 3600
+        bucket = int(elapsed_hours // interval_hours)
+        if bucket not in selected_items:
+            selected_items[bucket] = item
+
+    return [
+        to_dict(item)
+        for _, item in sorted(
+            selected_items.items(),
+            key=lambda entry: entry[1].created_at,
+        )
+    ]
+
+
+@router.get("/latest")
+def get_latest_system_metrics(db: Session = Depends(get_db)):
+    """Return the newest metrics snapshot stored in the database."""
+    item = (
+        db.query(SystemMetrics)
+        .order_by(SystemMetrics.created_at.desc(), SystemMetrics.id.desc())
+        .first()
+    )
+
+    if item is None:
+        raise HTTPException(
+            status_code=404,
+            detail="No system metrics found",
+        )
+
+    return to_dict(item)
 
 
 @router.get("/{metrics_id}")

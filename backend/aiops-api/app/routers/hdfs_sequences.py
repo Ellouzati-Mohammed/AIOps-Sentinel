@@ -1,7 +1,7 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -74,6 +74,27 @@ def create_hdfs_sequence(payload: HDFSSequenceCreate, db: Session = Depends(get_
 @router.get("")
 def list_hdfs_sequences(db: Session = Depends(get_db)):
     items = db.query(HDFSSequence).all()
+    return [to_dict(item) for item in items]
+
+
+@router.get("/anomalies/recent")
+def list_recent_anomalies(
+    hours: int = Query(24, gt=0),
+    limit: int = Query(5, gt=0, le=100),
+    db: Session = Depends(get_db),
+):
+    """Return the most recent anomalous HDFS blocks."""
+    cutoff = datetime.utcnow() - timedelta(hours=hours)
+    items = (
+        db.query(HDFSSequence)
+        .filter(
+            HDFSSequence.prediction == "ANOMALY",
+            HDFSSequence.completed_at >= cutoff,
+        )
+        .order_by(HDFSSequence.completed_at.desc(), HDFSSequence.id.desc())
+        .limit(limit)
+        .all()
+    )
     return [to_dict(item) for item in items]
 
 
