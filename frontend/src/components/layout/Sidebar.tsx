@@ -1,11 +1,9 @@
 import {
   Activity,
-  BarChart3,
   Blocks,
   BrainCircuit,
   Cpu,
   FileCode,
-  Gauge,
   LayoutDashboard,
   Radio,
   Settings,
@@ -34,13 +32,6 @@ const navSections = [
       { label: 'Anomalies', to: '/anomalies', icon: TriangleAlert },
       { label: 'Predictions', to: '/predictions', icon: BrainCircuit },
       { label: 'Models', to: '/models', icon: Cpu },
-    ],
-  },
-  {
-    title: 'ANALYTICS',
-    items: [
-      { label: 'Analytics', to: '/analytics', icon: BarChart3 },
-      { label: 'Performance', to: '/performance', icon: Gauge },
     ],
   },
   {

@@ -8,7 +8,6 @@ import { AnomaliesPage } from './pages/Anomalies';
 import { ModelsPage } from './pages/Models';
 import { TemplatesPage } from './pages/Templates';
 import { SystemMetricsPage } from './pages/SystemMetrics';
-import { AnalyticsPage } from './pages/Analytics';
 import { PerformancePage } from './pages/Performance';
 import { SettingsPage } from './pages/Settings';
 
@@ -25,7 +24,6 @@ function App() {
         <Route path="/predictions" element={<PredictionsPage />} />
         <Route path="/anomalies" element={<AnomaliesPage />} />
         <Route path="/models" element={<ModelsPage />} />
-        <Route path="/analytics" element={<AnalyticsPage />} />
         <Route path="/performance" element={<PerformancePage />} />
         <Route path="/settings" element={<SettingsPage />} />
       </Routes>
