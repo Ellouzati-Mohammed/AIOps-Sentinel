@@ -1,29 +1,37 @@
-import { Pause, RefreshCcw, Search, Trash2 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { Pause, RefreshCcw, Search } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { AppLayout } from '../components/layout/AppLayout';
-import { logEntries } from '../mock/logs';
-
-const levels = ['All', 'INFO', 'WARN', 'ERROR'];
-const sources = ['All', 'api', 'filebeat', 'logstash', 'database', 'ml'];
+import { getLogs, type LogRecord } from '../api/systemMetrics.api';
 
 export function LiveLogsPage() {
+  const [searchInput, setSearchInput] = useState('');
   const [query, setQuery] = useState('');
-  const [level, setLevel] = useState('All');
-  const [source, setSource] = useState('All');
-  const [block, setBlock] = useState('');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [page, setPage] = useState(1);
+  const [logs, setLogs] = useState<LogRecord[]>([]);
+  const [totalPages, setTotalPages] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const pageSize = 20;
 
-  const filteredLogs = useMemo(() => {
-    return logEntries.filter((entry) => {
-      const queryMatch = !query || entry.message.toLowerCase().includes(query.toLowerCase()) || entry.blockId.toLowerCase().includes(query.toLowerCase());
-      const levelMatch = level === 'All' || entry.level === level;
-      const sourceMatch = source === 'All' || entry.source === source;
-      const blockMatch = !block || entry.blockId.toLowerCase().includes(block.toLowerCase());
-      return queryMatch && levelMatch && sourceMatch && blockMatch;
-    });
-  }, [query, level, source, block]);
+  useEffect(() => {
+    setLoading(true);
+    setError(null);
+    getLogs(page, pageSize, query, sortOrder)
+      .then((result) => {
+        setLogs(result.items);
+        setTotalPages(result.total_pages);
+      })
+      .catch((err) => setError(err instanceof Error ? err.message : 'Failed to fetch logs'))
+      .finally(() => setLoading(false));
+  }, [page, query, sortOrder]);
 
-  const paginatedLogs = filteredLogs.slice((page - 1) * 8, page * 8);
+  const handleSearch = () => {
+    const nextQuery = searchInput.trim();
+    console.log('[Live Logs] search submitted:', nextQuery);
+    setQuery(nextQuery);
+    setPage(1);
+  };
 
   return (
     <AppLayout title="Live Logs" subtitle="Real-time stream of operational events">
@@ -33,26 +41,26 @@ export function LiveLogsPage() {
             <div className="live-pill"><span className="live-dot" /> Live</div>
             <label className="search-input compact">
               <Search size={14} />
-              <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search logs..." />
+              <input
+                value={searchInput}
+                onChange={(event) => setSearchInput(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') handleSearch();
+                }}
+                placeholder="Search logs..."
+              />
             </label>
-            <select value={level} onChange={(event) => setLevel(event.target.value)}>
-              <option value="All">Level</option>
-              {levels.filter((option) => option !== 'All').map((option) => (
-                <option key={option} value={option}>{option}</option>
-              ))}
+            <button className="primary-button" onClick={handleSearch} type="button">
+              <Search size={14} /> Search
+            </button>
+            <select value={sortOrder} onChange={(event) => { setSortOrder(event.target.value as 'asc' | 'desc'); setPage(1); }}>
+              <option value="desc">Newest first</option>
+              <option value="asc">Oldest first</option>
             </select>
-            <select value={source} onChange={(event) => setSource(event.target.value)}>
-              <option value="All">Source</option>
-              {sources.filter((option) => option !== 'All').map((option) => (
-                <option key={option} value={option}>{option}</option>
-              ))}
-            </select>
-            <input value={block} onChange={(event) => setBlock(event.target.value)} placeholder="Block ID" />
           </div>
           <div className="toolbar-right">
             <button className="secondary-button"><Pause size={14} /> Pause live stream</button>
-            <button className="secondary-button"><Trash2 size={14} /> Clear</button>
-            <button className="secondary-button"><RefreshCcw size={14} /> Refresh</button>
+            <button className="secondary-button" onClick={() => { setSearchInput(''); setQuery(''); setPage(1); }}><RefreshCcw size={14} /> Refresh</button>
           </div>
         </div>
 
@@ -60,23 +68,20 @@ export function LiveLogsPage() {
           <table>
             <thead>
               <tr>
-                <th>Timestamp</th>
-                <th>Level</th>
-                <th>Block</th>
-                <th>Source</th>
+                <th>Time</th>
                 <th>Message</th>
               </tr>
             </thead>
             <tbody>
-              {paginatedLogs.map((entry) => (
-                <tr key={`${entry.timestamp}-${entry.blockId}-${entry.message}`}>
-                  <td>{entry.timestamp}</td>
-                  <td><span className={`log-level ${entry.level.toLowerCase()}`}>{entry.level}</span></td>
-                  <td className="mono">{entry.blockId}</td>
-                  <td>{entry.source}</td>
+              {loading && <tr><td colSpan={2}>Chargement des logs...</td></tr>}
+              {error && <tr><td colSpan={2}>Impossible de charger les logs.</td></tr>}
+              {!loading && !error && logs.map((entry, index) => (
+                <tr key={`${entry.time}-${index}-${entry.message}`}>
+                  <td>{entry.time ? new Date(entry.time).toLocaleTimeString('fr-FR') : '-'}</td>
                   <td>{entry.message}</td>
                 </tr>
               ))}
+              {!loading && !error && logs.length === 0 && <tr><td colSpan={2}>Aucun log trouvé.</td></tr>}
             </tbody>
           </table>
         </div>
@@ -84,7 +89,7 @@ export function LiveLogsPage() {
         <div className="pagination">
           <button onClick={() => setPage((current) => Math.max(1, current - 1))} disabled={page === 1}>Previous</button>
           <span>Page {page}</span>
-          <button onClick={() => setPage((current) => current + 1)} disabled={page * 8 >= filteredLogs.length}>Next</button>
+          <button onClick={() => setPage((current) => current + 1)} disabled={totalPages === 0 || page >= totalPages}>Next</button>
         </div>
       </section>
     </AppLayout>
