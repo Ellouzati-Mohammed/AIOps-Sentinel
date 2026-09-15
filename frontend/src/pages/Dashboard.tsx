@@ -15,6 +15,8 @@ import {
 import { useSystemMetrics } from "../hooks/useSystemMetrics";
 import { useSystemMetricsHistory } from "../hooks/useSystemMetricsHistory";
 import { useRecentAnomalies } from "../hooks/useRecentAnomalies";
+import { getAggregatedSystemMetrics, type AggregatedSystemMetrics } from "../api/systemMetrics.api";
+import { useEffect, useState } from "react";
 import {
   Area,
   AreaChart,
@@ -46,17 +48,59 @@ function formatMetricTime(timestamp: string): string {
   }).format(date).replace(',', '');
 }
 
+function getTodayDate(): string {
+  const today = new Date();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+  return `${today.getFullYear()}-${month}-${day}`;
+}
+
 export function DashboardPage() {
   const { data, loading, error } = useSystemMetrics();
-  const { data: history, loading: historyLoading, error: historyError } = useSystemMetricsHistory(24, 2);
+  const [selectedDate, setSelectedDate] = useState('');
+  const [appliedDate, setAppliedDate] = useState('');
+  const [aggregateMetrics, setAggregateMetrics] = useState<AggregatedSystemMetrics | null>(null);
+  const [aggregateLoading, setAggregateLoading] = useState(true);
+  const [aggregateError, setAggregateError] = useState<string | null>(null);
+  const [logsDateInput, setLogsDateInput] = useState(getTodayDate);
+  const [logsDate, setLogsDate] = useState('');
+  const [predictionsDateInput, setPredictionsDateInput] = useState(getTodayDate);
+  const [predictionsDate, setPredictionsDate] = useState('');
+  const [anomalyDateInput, setAnomalyDateInput] = useState(getTodayDate);
+  const [anomalyDate, setAnomalyDate] = useState('');
+  const [durationDateInput, setDurationDateInput] = useState(getTodayDate);
+  const [durationDate, setDurationDate] = useState('');
+  const logsHistory = useSystemMetricsHistory(24, 2, logsDate || undefined);
+  const predictionsHistory = useSystemMetricsHistory(24, 2, predictionsDate || undefined);
+  const anomalyHistory = useSystemMetricsHistory(24, 2, anomalyDate || undefined);
+  const durationHistory = useSystemMetricsHistory(24, 2, durationDate || undefined);
   const { data: recentAnomalies, loading: anomaliesLoading, error: anomaliesError } = useRecentAnomalies(24, 5);
-  const metrics = data[0];
-  const chartData = history.map((item) => ({
+  useEffect(() => {
+    getAggregatedSystemMetrics(appliedDate || undefined)
+      .then((result) => {
+        setAggregateMetrics(result);
+        setAggregateError(null);
+      })
+      .catch((err) => setAggregateError(err instanceof Error ? err.message : 'Impossible de charger les KPI'))
+      .finally(() => setAggregateLoading(false));
+  }, [appliedDate]);
+
+  const metrics = aggregateMetrics ?? data[0];
+  const logsChartData = logsHistory.data.map((item) => ({
     name: formatMetricTime(item.created_at),
     logs: item.logs_received,
+  }));
+  const predictionsChartData = predictionsHistory.data.map((item) => ({
+    name: formatMetricTime(item.created_at),
     normal: item.normal_predictions,
     anomaly: item.anomaly_predictions,
+  }));
+  const anomalyChartData = anomalyHistory.data.map((item) => ({
+    name: formatMetricTime(item.created_at),
     anomalyRate: item.anomaly_rate,
+  }));
+  const durationChartData = durationHistory.data.map((item) => ({
+    name: formatMetricTime(item.created_at),
     duration: item.avg_block_duration ?? 0,
   }));
   return (
@@ -67,15 +111,26 @@ export function DashboardPage() {
           <div>
             <p className="section-period-eyebrow">Live snapshot</p>
             <h2>Key Performance Indicators</h2>
-            <p>Valeurs du dernier snapshot disponible.</p>
+            <p>{appliedDate ? `Somme de la journée ${appliedDate}.` : 'Somme de toutes les métriques disponibles.'}</p>
           </div>
-          <span className="section-period-badge">Dernières heures</span>
+          <div className="kpi-date-control">
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(event) => setSelectedDate(event.target.value)}
+              aria-label="Choisir une date pour les KPI"
+            />
+            <button type="button" className="primary-button" onClick={() => setAppliedDate(selectedDate)}>
+              Appliquer
+            </button>
+          </div>
+          <span className="section-period-badge">{appliedDate || 'Toutes les dates'}</span>
         </div>
 
         <div className="metrics-grid">
-          {loading && <p>Chargement des KPI...</p>}
-          {error && <p role="alert">Impossible de charger les KPI.</p>}
-          {!loading && !error && metrics && (
+          {(loading || aggregateLoading) && <p>Chargement des KPI...</p>}
+          {(error || aggregateError) && <p role="alert">Impossible de charger les KPI.</p>}
+          {!loading && !aggregateLoading && !error && !aggregateError && metrics && (
           <>
           <MetricCard
             title="Logs Received"
@@ -147,16 +202,16 @@ export function DashboardPage() {
           <div>
             <p className="section-period-eyebrow">Historical trends</p>
             <h2>System Metrics Over Time</h2>
-            <p>Évolution des métriques avec un point toutes les 2 heures.</p>
+            <p>Chaque graphique peut afficher les dernières 24 heures ou une journée précise.</p>
           </div>
-          <span className="section-period-badge charts-badge">Dernières 24 heures</span>
+          <span className="section-period-badge charts-badge">Dates indépendantes</span>
         </div>
 
         <div className="dashboard-grid">
-        <ChartCard title="Log ingestion rate" subtitle="Logs / minute">
+        <ChartCard title="Log ingestion rate" subtitle="Logs / minute" actions={<ChartDateControl value={logsDateInput} onChange={(date) => { setLogsDateInput(date); setLogsDate(date); }} />}>
           <div className="chart-wrap large">
             <ResponsiveContainer width="100%" height={260}>
-              <AreaChart data={chartData}>
+              <AreaChart data={logsChartData}>
                 <defs>
                   <linearGradient id="ingestionFill" x1="0" x2="0" y1="0" y2="1">
                     <stop offset="5%" stopColor="#2563eb" stopOpacity={0.2} />
@@ -173,10 +228,10 @@ export function DashboardPage() {
           </div>
         </ChartCard>
 
-        <ChartCard title="Predictions" subtitle="Normal vs anomaly over 24h">
+        <ChartCard title="Predictions" subtitle="Normal vs anomaly over 24h" actions={<ChartDateControl value={predictionsDateInput} onChange={(date) => { setPredictionsDateInput(date); setPredictionsDate(date); }} />}>
           <div className="chart-wrap">
             <ResponsiveContainer width="100%" height={260}>
-              <ComposedChart data={chartData}>
+              <ComposedChart data={predictionsChartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
                 <XAxis dataKey="name" interval={0} minTickGap={0} height={42} tickMargin={2} angle={-30} textAnchor="end" tickLine={false} axisLine={false} tick={{ fill: '#64748b', fontSize: 9 }} />
                 <YAxis tickLine={false} axisLine={false} tick={{ fill: '#64748b', fontSize: 12 }} />
@@ -189,10 +244,10 @@ export function DashboardPage() {
           </div>
         </ChartCard>
 
-        <ChartCard title="Anomaly rate over time">
+        <ChartCard title="Anomaly rate over time" actions={<ChartDateControl value={anomalyDateInput} onChange={(date) => { setAnomalyDateInput(date); setAnomalyDate(date); }} />}>
           <div className="chart-wrap">
             <ResponsiveContainer width="100%" height={230}>
-              <AreaChart data={chartData}>
+              <AreaChart data={anomalyChartData}>
                 <defs>
                   <linearGradient id="anomalyFill" x1="0" x2="0" y1="0" y2="1">
                     <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.2} />
@@ -209,17 +264,17 @@ export function DashboardPage() {
           </div>
         </ChartCard>
 
-        <ChartCard title="Average block processing time">
+        <ChartCard title="Average block processing time" actions={<ChartDateControl value={durationDateInput} onChange={(date) => { setDurationDateInput(date); setDurationDate(date); }} />}>
           <div className="chart-wrap">
             <ResponsiveContainer width="100%" height={230}>
-              <LineChartMini data={chartData.map(({ name, duration }) => ({ name, value: duration }))} />
+              <LineChartMini data={durationChartData.map(({ name, duration }) => ({ name, value: duration }))} />
             </ResponsiveContainer>
           </div>
         </ChartCard>
         </div>
 
-        {historyLoading && <p className="metrics-period">Chargement de l’historique des graphiques...</p>}
-        {historyError && <p className="metrics-period" role="alert">Impossible de charger les données des graphiques.</p>}
+        {(logsHistory.loading || predictionsHistory.loading || anomalyHistory.loading || durationHistory.loading) && <p className="metrics-period">Chargement de l’historique des graphiques...</p>}
+        {(logsHistory.error || predictionsHistory.error || anomalyHistory.error || durationHistory.error) && <p className="metrics-period" role="alert">Impossible de charger les données des graphiques.</p>}
       </section>
 
       <section className="panel">
@@ -260,6 +315,25 @@ export function DashboardPage() {
         </div>
       </section>
     </AppLayout>
+  );
+}
+
+function ChartDateControl({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="chart-date-control" title="Choisir la date du graphique">
+      <input
+        type="date"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        aria-label="Choisir la date de ce graphique"
+      />
+    </label>
   );
 }
 
