@@ -11,20 +11,21 @@ interface UseSystemMetricsHistoryResult {
 export function useSystemMetricsHistory(
   hours = 24,
   intervalHours = 2,
+  date?: string,
 ): UseSystemMetricsHistoryResult {
   const [data, setData] = useState<SystemMetrics[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    getSystemMetricsHistory(hours, intervalHours)
+    getSystemMetricsHistory(hours, intervalHours, date)
       .then(setData)
       .catch((err) => {
         console.error("[Dashboard API] System metrics history error:", err);
         setError(err instanceof Error ? err.message : "Failed to fetch system metrics history");
       })
       .finally(() => setLoading(false));
-  }, [hours, intervalHours]);
+  }, [hours, intervalHours, date]);
 
   return { data, loading, error };
 }
