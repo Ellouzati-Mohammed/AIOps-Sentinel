@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from math import ceil
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -72,9 +73,50 @@ def create_hdfs_sequence(payload: HDFSSequenceCreate, db: Session = Depends(get_
 
 
 @router.get("")
-def list_hdfs_sequences(db: Session = Depends(get_db)):
-    items = db.query(HDFSSequence).all()
-    return [to_dict(item) for item in items]
+def list_hdfs_sequences(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    search: str | None = Query(None),
+    prediction: str | None = Query(None),
+    sort_by: str = Query("completed_at"),
+    sort_order: str = Query("desc", pattern="^(asc|desc)$"),
+    db: Session = Depends(get_db),
+):
+    allowed_sort_fields = {
+        "id": HDFSSequence.id,
+        "block_id": HDFSSequence.block_id,
+        "num_events": HDFSSequence.num_events,
+        "duration": HDFSSequence.duration,
+        "score": HDFSSequence.score,
+        "model_id": HDFSSequence.model_id,
+        "completed_at": HDFSSequence.completed_at,
+        "created_at": HDFSSequence.created_at,
+    }
+    sort_column = allowed_sort_fields.get(sort_by, HDFSSequence.completed_at)
+    query = db.query(HDFSSequence)
+    if search and search.strip():
+        query = query.filter(HDFSSequence.block_id.ilike(f"%{search.strip()}%"))
+    if prediction and prediction != "All":
+        query = query.filter(HDFSSequence.prediction == prediction.upper())
+
+    total = query.count()
+    items = (
+        query.order_by(
+            sort_column.asc() if sort_order == "asc" else sort_column.desc(),
+            HDFSSequence.id.desc(),
+        )
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+        .all()
+    )
+
+    return {
+        "items": [to_dict(item) for item in items],
+        "page": page,
+        "page_size": page_size,
+        "total": total,
+        "total_pages": ceil(total / page_size) if total else 0,
+    }
 
 
 @router.get("/anomalies/recent")
@@ -96,6 +138,51 @@ def list_recent_anomalies(
         .all()
     )
     return [to_dict(item) for item in items]
+
+
+@router.get("/prediction-stats")
+def get_prediction_stats(db: Session = Depends(get_db)):
+    """Return prediction totals and score buckets for the prediction page."""
+    items = db.query(HDFSSequence.prediction, HDFSSequence.score).all()
+    distribution = {
+        "0.00-0.10": 0,
+        "0.10-0.20": 0,
+        "0.20-0.40": 0,
+        "0.40-0.60": 0,
+        "0.60-0.80": 0,
+        "0.80-1.00": 0,
+    }
+    normal = 0
+    anomaly = 0
+
+    for prediction, score in items:
+        if prediction == "NORMAL":
+            normal += 1
+        elif prediction == "ANOMALY":
+            anomaly += 1
+
+        if score < 0.10:
+            distribution["0.00-0.10"] += 1
+        elif score < 0.20:
+            distribution["0.10-0.20"] += 1
+        elif score < 0.40:
+            distribution["0.20-0.40"] += 1
+        elif score < 0.60:
+            distribution["0.40-0.60"] += 1
+        elif score < 0.80:
+            distribution["0.60-0.80"] += 1
+        else:
+            distribution["0.80-1.00"] += 1
+
+    return {
+        "total_predictions": normal + anomaly,
+        "normal_predictions": normal,
+        "anomaly_predictions": anomaly,
+        "score_distribution": [
+            {"name": name, "value": value}
+            for name, value in distribution.items()
+        ],
+    }
 
 
 @router.get("/{sequence_id}")

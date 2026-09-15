@@ -1,6 +1,6 @@
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -55,8 +55,21 @@ def create_hdfs_template(payload: HDFSTemplateCreate, db: Session = Depends(get_
 
 
 @router.get("")
-def list_hdfs_templates(db: Session = Depends(get_db)):
-    items = db.query(HDFSTemplate).all()
+def list_hdfs_templates(
+    sort_by: str = Query("created_at"),
+    sort_order: str = Query("desc", pattern="^(asc|desc)$"),
+    db: Session = Depends(get_db),
+):
+    allowed_sort_fields = {
+        "id": HDFSTemplate.id,
+        "event_id": HDFSTemplate.event_id,
+        "created_at": HDFSTemplate.created_at,
+    }
+    sort_column = allowed_sort_fields.get(sort_by, HDFSTemplate.created_at)
+    items = db.query(HDFSTemplate).order_by(
+        sort_column.asc() if sort_order == "asc" else sort_column.desc(),
+        HDFSTemplate.id.desc(),
+    ).all()
     return [to_dict(item) for item in items]
 
 

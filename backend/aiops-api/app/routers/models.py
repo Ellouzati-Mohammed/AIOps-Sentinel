@@ -1,6 +1,6 @@
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -69,8 +69,24 @@ def create_model(payload: ModelCreate, db: Session = Depends(get_db)):
 
 
 @router.get("")
-def list_models(db: Session = Depends(get_db)):
-    items = db.query(Model).all()
+def list_models(
+    sort_by: str = Query("updated_at"),
+    sort_order: str = Query("desc", pattern="^(asc|desc)$"),
+    db: Session = Depends(get_db),
+):
+    allowed_sort_fields = {
+        "id": Model.id,
+        "name": Model.name,
+        "version": Model.version,
+        "threshold": Model.threshold,
+        "created_at": Model.created_at,
+        "updated_at": Model.updated_at,
+    }
+    sort_column = allowed_sort_fields.get(sort_by, Model.updated_at)
+    items = db.query(Model).order_by(
+        sort_column.asc() if sort_order == "asc" else sort_column.desc(),
+        Model.id.desc(),
+    ).all()
     return [to_dict(item) for item in items]
 
 
