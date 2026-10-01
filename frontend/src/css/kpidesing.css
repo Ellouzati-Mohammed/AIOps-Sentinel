@@ -1,0 +1,578 @@
+
+/* =====================================================
+   SYSTEM METRICS PAGE
+   ===================================================== */
+
+.system-metrics-page {
+  width: 100%;
+}
+
+
+/* =====================================================
+   KPI SECTION
+   ===================================================== */
+
+.kpi-section {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 18px;
+  padding: 24px;
+  margin-bottom: 28px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.035);
+}
+
+
+/* =====================================================
+   KPI HEADER
+   ===================================================== */
+
+.kpi-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+  margin-bottom: 22px;
+}
+
+.kpi-heading {
+  min-width: 220px;
+}
+
+.kpi-heading h2 {
+  margin: 0 0 6px;
+  color: #0f172a;
+  font-size: 18px;
+  line-height: 1.3;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+}
+
+.kpi-heading p {
+  margin: 0;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+
+/* =====================================================
+   DATE FILTER
+   ===================================================== */
+
+.kpi-date-filter {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.date-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.date-field label {
+  color: #64748b;
+  font-size: 10px;
+  line-height: 1;
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.date-input-container {
+  position: relative;
+}
+
+.date-input-icon {
+  position: absolute;
+  left: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #64748b;
+  font-size: 14px;
+  pointer-events: none;
+}
+
+.date-input {
+  height: 40px;
+  width: 148px;
+  box-sizing: border-box;
+  padding: 0 10px 0 32px;
+
+  border: 1px solid #dbe1e8;
+  border-radius: 9px;
+
+  background: #f8fafc;
+  color: #1e293b;
+
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+
+  outline: none;
+
+  transition: all 0.2s ease;
+}
+
+.date-input:hover {
+  background: #ffffff;
+  border-color: #cbd5e1;
+}
+
+.date-input:focus {
+  background: #ffffff;
+  border-color: #6366f1;
+
+  box-shadow:
+    0 0 0 3px rgba(99, 102, 241, 0.10);
+}
+
+.date-arrow {
+  height: 40px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  color: #94a3b8;
+  font-size: 14px;
+
+  padding: 0 1px;
+}
+
+
+/* =====================================================
+   BUTTONS
+   ===================================================== */
+
+.kpi-button {
+  height: 40px;
+  border-radius: 9px;
+  padding: 0 15px;
+
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+
+  cursor: pointer;
+
+  transition: all 0.2s ease;
+}
+
+.apply-button {
+  border: 1px solid #4f46e5;
+  background: #4f46e5;
+  color: #ffffff;
+
+  box-shadow:
+    0 2px 5px rgba(79, 70, 229, 0.18);
+}
+
+.apply-button:hover {
+  background: #4338ca;
+  border-color: #4338ca;
+
+  transform: translateY(-1px);
+}
+
+.reset-button {
+  border: 1px solid #dbe1e8;
+  background: #ffffff;
+  color: #475569;
+}
+
+.reset-button:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+
+/* =====================================================
+   KPI PERIOD
+   ===================================================== */
+
+.kpi-period-bar {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+
+  padding: 10px 13px;
+  margin-bottom: 18px;
+
+  border-radius: 9px;
+
+  background: #f8fafc;
+  border: 1px solid #eef2f7;
+}
+
+.kpi-period-indicator {
+  width: 7px;
+  height: 7px;
+
+  flex-shrink: 0;
+
+  border-radius: 50%;
+
+  background: #22c55e;
+
+  box-shadow:
+    0 0 0 3px rgba(34, 197, 94, 0.10);
+}
+
+.kpi-period-text {
+  color: #64748b;
+  font-size: 11px;
+}
+
+.kpi-period-text strong {
+  color: #334155;
+  font-weight: 700;
+}
+
+
+/* =====================================================
+   KPI GRID
+   ===================================================== */
+
+.metrics-kpi-grid {
+  display: grid;
+
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr));
+
+  gap: 13px;
+}
+
+
+/* =====================================================
+   KPI CARD
+   ===================================================== */
+
+.kpi-tile {
+  position: relative;
+  overflow: hidden;
+
+  min-height: 100px;
+
+  padding: 17px 18px;
+
+  border: 1px solid #e8ebf0;
+  border-radius: 13px;
+
+  background: #ffffff;
+
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.kpi-tile:hover {
+  transform: translateY(-2px);
+
+  border-color: #d8dde6;
+
+  box-shadow:
+    0 7px 18px rgba(15, 23, 42, 0.06);
+}
+
+.kpi-tile::before {
+  content: '';
+
+  position: absolute;
+
+  top: 0;
+  left: 0;
+
+  width: 100%;
+  height: 3px;
+
+  background: #e0e7ff;
+}
+
+.kpi-label {
+  display: block;
+
+  margin-bottom: 11px;
+
+  color: #64748b;
+
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.kpi-value {
+  display: block;
+
+  color: #0f172a;
+
+  font-size: 23px;
+  line-height: 1;
+
+  font-weight: 750;
+
+  letter-spacing: -0.025em;
+}
+
+.kpi-unit {
+  margin-left: 4px;
+
+  color: #64748b;
+
+  font-size: 12px;
+  font-weight: 550;
+
+  letter-spacing: 0;
+}
+
+
+/* =====================================================
+   KPI LOADING
+   ===================================================== */
+
+.kpi-message {
+  grid-column: 1 / -1;
+
+  padding: 28px;
+
+  text-align: center;
+
+  color: #64748b;
+
+  font-size: 13px;
+}
+
+
+/* =====================================================
+   KPI ERROR
+   ===================================================== */
+
+.kpi-error {
+  grid-column: 1 / -1;
+
+  padding: 13px 15px;
+
+  border: 1px solid #fecaca;
+  border-radius: 9px;
+
+  background: #fef2f2;
+
+  color: #b91c1c;
+
+  font-size: 12px;
+}
+
+
+/* =====================================================
+   CHARTS SECTION
+   ===================================================== */
+
+.charts-section {
+  margin-top: 0;
+}
+
+.charts-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  margin-bottom: 16px;
+
+  padding: 0 2px;
+}
+
+.charts-title h2 {
+  margin: 0 0 4px;
+
+  color: #0f172a;
+
+  font-size: 18px;
+  font-weight: 750;
+
+  letter-spacing: -0.02em;
+}
+
+.charts-title p {
+  margin: 0;
+
+  color: #64748b;
+
+  font-size: 12px;
+}
+
+.charts-badge {
+  padding: 6px 10px;
+
+  border: 1px solid #e5e7eb;
+  border-radius: 7px;
+
+  background: #ffffff;
+
+  color: #64748b;
+
+  font-size: 10px;
+  font-weight: 650;
+}
+
+
+/* =====================================================
+   CHART GRID
+   ===================================================== */
+
+.dashboard-grid {
+  display: grid;
+
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+
+  gap: 17px;
+}
+
+
+/* =====================================================
+   CHART PANEL
+   ===================================================== */
+
+.panel {
+  min-width: 0;
+  overflow: hidden;
+
+  border: 1px solid #e5e7eb;
+  border-radius: 15px;
+
+  background: #ffffff;
+
+  box-shadow:
+    0 2px 8px rgba(15, 23, 42, 0.03);
+}
+
+.panel-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+
+  padding: 17px 19px 3px;
+}
+
+.panel-header h3 {
+  margin: 0 0 4px;
+
+  color: #0f172a;
+
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.panel-subtitle {
+  margin: 0;
+
+  color: #94a3b8;
+
+  font-size: 10px;
+}
+
+.chart-wrap {
+  width: 100%;
+
+  padding: 8px 12px 13px 4px;
+
+  box-sizing: border-box;
+}
+
+
+/* =====================================================
+   HISTORY MESSAGES
+   ===================================================== */
+
+.history-message {
+  margin-top: 15px;
+
+  color: #64748b;
+
+  font-size: 11px;
+}
+
+.history-error {
+  margin-top: 15px;
+
+  color: #b91c1c;
+
+  font-size: 11px;
+}
+
+
+/* =====================================================
+   RESPONSIVE
+   ===================================================== */
+
+@media (max-width: 1150px) {
+
+  .kpi-section-header {
+    flex-direction: column;
+  }
+
+  .kpi-date-filter {
+    width: 100%;
+  }
+
+  .metrics-kpi-grid {
+    grid-template-columns:
+      repeat(3, minmax(0, 1fr));
+  }
+}
+
+
+@media (max-width: 900px) {
+
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .metrics-kpi-grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+}
+
+
+@media (max-width: 620px) {
+
+  .kpi-section {
+    padding: 17px;
+  }
+
+  .kpi-date-filter {
+    display: grid;
+
+    grid-template-columns:
+      1fr 1fr;
+  }
+
+  .date-input {
+    width: 100%;
+  }
+
+  .date-arrow {
+    display: none;
+  }
+
+  .apply-button,
+  .reset-button {
+    width: 100%;
+  }
+
+  .metrics-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .charts-section-header {
+    align-items: flex-start;
+
+    flex-direction: column;
+
+    gap: 10px;
+  }
+}
+
