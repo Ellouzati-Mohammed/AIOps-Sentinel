@@ -237,6 +237,388 @@ def get_aggregated_system_metrics(
         "aggregated_date": selected_date.isoformat() if selected_date else None,
     }
 
+@router.get("/aggregate2date")
+def get_aggregated_system_metrics(
+    start_date: date | None = Query(
+        None,
+        description="Optional start date, format YYYY-MM-DD",
+    ),
+    end_date: date | None = Query(
+        None,
+        description="Optional end date, format YYYY-MM-DD",
+    ),
+    db: Session = Depends(get_db),
+):
+    """
+    Aggregate system metrics between two optional dates.
+
+    Behavior:
+    - No dates -> aggregate all system metrics
+    - start_date only -> from start_date onward
+    - end_date only -> up to end_date
+    - Both dates -> inclusive date range
+    - No data -> return zero values instead of 404
+    """
+
+    # ---------------------------------------------------------
+    # Validate dates
+    # ---------------------------------------------------------
+
+    if start_date is not None and end_date is not None:
+        if start_date > end_date:
+            raise HTTPException(
+                status_code=400,
+                detail="start_date must be less than or equal to end_date",
+            )
+
+    # ---------------------------------------------------------
+    # Base query
+    # ---------------------------------------------------------
+
+    query = db.query(SystemMetrics)
+
+    # ---------------------------------------------------------
+    # Date filters
+    # ---------------------------------------------------------
+
+    if start_date is not None:
+        start_time = datetime.combine(
+            start_date,
+            time.min,
+        )
+
+        query = query.filter(
+            SystemMetrics.created_at >= start_time
+        )
+
+    if end_date is not None:
+        end_time = datetime.combine(
+            end_date + timedelta(days=1),
+            time.min,
+        )
+
+        query = query.filter(
+            SystemMetrics.created_at < end_time
+        )
+
+    # ---------------------------------------------------------
+    # Get snapshots
+    # ---------------------------------------------------------
+
+    items = (
+        query
+        .order_by(
+            SystemMetrics.created_at.asc(),
+            SystemMetrics.id.asc(),
+        )
+        .all()
+    )
+
+    # ---------------------------------------------------------
+    # No data
+    # ---------------------------------------------------------
+
+    if not items:
+        return {
+            "id": None,
+
+            "logs_received": 0,
+            "blocks_completed": 0,
+
+            "normal_predictions": 0,
+            "anomaly_predictions": 0,
+            "total_predictions": 0,
+
+            "anomaly_rate": 0.0,
+            "normal_rate": 0.0,
+
+            "avg_score": 0.0,
+            "max_score": 0.0,
+            "min_score": 0.0,
+
+            "avg_block_duration": 0.0,
+            "max_block_duration": 0.0,
+            "min_block_duration": 0.0,
+
+            "avg_events_per_block": 0.0,
+            "max_events_per_block": 0,
+
+            "info_logs": 0,
+            "warn_logs": 0,
+
+            "created_at": None,
+
+            "snapshots_count": 0,
+
+            "start_date": start_date.isoformat()
+            if start_date
+            else None,
+
+            "end_date": end_date.isoformat()
+            if end_date
+            else None,
+        }
+
+    # ---------------------------------------------------------
+    # Basic totals
+    # ---------------------------------------------------------
+
+    logs_received = sum(
+        item.logs_received or 0
+        for item in items
+    )
+
+    blocks_completed = sum(
+        item.blocks_completed or 0
+        for item in items
+    )
+
+    normal_predictions = sum(
+        item.normal_predictions or 0
+        for item in items
+    )
+
+    anomaly_predictions = sum(
+        item.anomaly_predictions or 0
+        for item in items
+    )
+
+    total_predictions = sum(
+        item.total_predictions or 0
+        for item in items
+    )
+
+    info_logs = sum(
+        item.info_logs or 0
+        for item in items
+    )
+
+    warn_logs = sum(
+        item.warn_logs or 0
+        for item in items
+    )
+
+    # ---------------------------------------------------------
+    # Prediction rates
+    # ---------------------------------------------------------
+
+    anomaly_rate = (
+        round(
+            anomaly_predictions / total_predictions * 100,
+            2,
+        )
+        if total_predictions
+        else 0.0
+    )
+
+    normal_rate = (
+        round(
+            normal_predictions / total_predictions * 100,
+            2,
+        )
+        if total_predictions
+        else 0.0
+    )
+
+    # ---------------------------------------------------------
+    # Average score
+    # Weighted by number of predictions
+    # ---------------------------------------------------------
+
+    score_items = [
+        item
+        for item in items
+        if item.avg_score is not None
+        and (item.total_predictions or 0) > 0
+    ]
+
+    score_weight = sum(
+        item.total_predictions or 0
+        for item in score_items
+    )
+
+    avg_score = (
+        round(
+            sum(
+                item.avg_score
+                * (item.total_predictions or 0)
+                for item in score_items
+            )
+            / score_weight,
+            4,
+        )
+        if score_weight
+        else 0.0
+    )
+
+    # ---------------------------------------------------------
+    # Score min / max
+    # ---------------------------------------------------------
+
+    max_score = max(
+        (
+            item.max_score
+            for item in items
+            if item.max_score is not None
+        ),
+        default=0.0,
+    )
+
+    min_score = min(
+        (
+            item.min_score
+            for item in items
+            if item.min_score is not None
+        ),
+        default=0.0,
+    )
+
+    # ---------------------------------------------------------
+    # Average block duration
+    # Weighted by completed blocks
+    # ---------------------------------------------------------
+
+    duration_items = [
+        item
+        for item in items
+        if item.avg_block_duration is not None
+        and (item.blocks_completed or 0) > 0
+    ]
+
+    block_weight = sum(
+        item.blocks_completed or 0
+        for item in duration_items
+    )
+
+    avg_block_duration = (
+        round(
+            sum(
+                item.avg_block_duration
+                * (item.blocks_completed or 0)
+                for item in duration_items
+            )
+            / block_weight,
+            3,
+        )
+        if block_weight
+        else 0.0
+    )
+
+    # ---------------------------------------------------------
+    # Block duration min / max
+    # ---------------------------------------------------------
+
+    max_block_duration = max(
+        (
+            item.max_block_duration
+            for item in items
+            if item.max_block_duration is not None
+        ),
+        default=0.0,
+    )
+
+    min_block_duration = min(
+        (
+            item.min_block_duration
+            for item in items
+            if item.min_block_duration is not None
+        ),
+        default=0.0,
+    )
+
+    # ---------------------------------------------------------
+    # Average events per block
+    # Weighted by completed blocks
+    # ---------------------------------------------------------
+
+    events_items = [
+        item
+        for item in items
+        if item.avg_events_per_block is not None
+        and (item.blocks_completed or 0) > 0
+    ]
+
+    events_weight = sum(
+        item.blocks_completed or 0
+        for item in events_items
+    )
+
+    avg_events_per_block = (
+        round(
+            sum(
+                item.avg_events_per_block
+                * (item.blocks_completed or 0)
+                for item in events_items
+            )
+            / events_weight,
+            2,
+        )
+        if events_weight
+        else 0.0
+    )
+
+    # ---------------------------------------------------------
+    # Events per block max
+    # ---------------------------------------------------------
+
+    max_events_per_block = max(
+        (
+            item.max_events_per_block
+            for item in items
+            if item.max_events_per_block is not None
+        ),
+        default=0,
+    )
+
+    # ---------------------------------------------------------
+    # Response
+    # ---------------------------------------------------------
+
+    return {
+        "id": None,
+
+        "logs_received": logs_received,
+        "blocks_completed": blocks_completed,
+
+        "normal_predictions": normal_predictions,
+        "anomaly_predictions": anomaly_predictions,
+        "total_predictions": total_predictions,
+
+        "anomaly_rate": anomaly_rate,
+        "normal_rate": normal_rate,
+
+        "avg_score": avg_score,
+        "max_score": max_score,
+        "min_score": min_score,
+
+        "avg_block_duration": avg_block_duration,
+        "max_block_duration": max_block_duration,
+        "min_block_duration": min_block_duration,
+
+        "avg_events_per_block": avg_events_per_block,
+        "max_events_per_block": max_events_per_block,
+
+        "info_logs": info_logs,
+        "warn_logs": warn_logs,
+
+        "created_at": items[-1].created_at,
+
+        "snapshots_count": len(items),
+
+        "start_date": (
+            start_date.isoformat()
+            if start_date
+            else None
+        ),
+
+        "end_date": (
+            end_date.isoformat()
+            if end_date
+            else None
+        ),
+    }
+
+
 
 @router.get("/{metrics_id}")
 def get_system_metrics(metrics_id: int, db: Session = Depends(get_db)):
@@ -271,3 +653,4 @@ def delete_system_metrics(metrics_id: int, db: Session = Depends(get_db)):
     db.commit()
 
     return {"status": "deleted", "id": metrics_id}
+
