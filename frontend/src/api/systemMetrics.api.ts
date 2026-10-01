@@ -193,3 +193,25 @@ export async function getAggregatedSystemMetrics(date?: string): Promise<Aggrega
     : "/api/system-metrics/aggregate";
   return apiClient<AggregatedSystemMetrics>(endpoint);
 }
+export async function getAggregatedSystemMetricsByDateRange(
+  startDate?: string,
+  endDate?: string,
+): Promise<SystemMetrics> {
+  const params = new URLSearchParams();
+
+  if (startDate) {
+    params.set("start_date", startDate);
+  }
+
+  if (endDate) {
+    params.set("end_date", endDate);
+  }
+
+  const query = params.toString();
+
+  const endpoint = query
+    ? `/api/system-metrics/aggregate2date?${query}`
+    : "/api/system-metrics/aggregate2date";
+
+  return apiClient<SystemMetrics>(endpoint);
+}
