@@ -16,7 +16,7 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
-SCALER_PATH = BASE_DIR / "ml" / "scaler.joblib"
+SCALER_PATH = BASE_DIR / "ML" / "scaler.joblib"
 
 
 # ============================================================

@@ -1,32 +1,25 @@
-import type { ReactNode } from 'react';
+import type { ReactNode } from "react";
 
 interface DataTableProps {
-  columns: { label: string; key: string }[];
-  rows: Record<string, ReactNode>[];
-  className?: string;
+  children: ReactNode;
+  pagination?: ReactNode;
 }
 
-export function DataTable({ columns, rows, className = '' }: DataTableProps) {
+export function DataTable({
+  children,
+  pagination,
+}: DataTableProps) {
   return (
-    <div className={`table-shell ${className}`}>
-      <table>
-        <thead>
-          <tr>
-            {columns.map((column) => (
-              <th key={column.key}>{column.label}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row, rowIndex) => (
-            <tr key={rowIndex}>
-              {columns.map((column) => (
-                <td key={`${rowIndex}-${column.key}`}>{row[column.key]}</td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="data-table-container">
+      <div className="table-shell">
+        {children}
+      </div>
+
+      {pagination && (
+        <div className="pagination">
+          {pagination}
+        </div>
+      )}
     </div>
   );
 }

@@ -7,6 +7,7 @@ from app.services.template_matcher import TemplateMatcher
 from app.services.predictor import predict as predict_anomaly
 from app.models import HDFSSequence, Model
 from datetime import datetime
+from app.services.realtime import realtime_manager
 
 # ==========================================================
 # CONFIGURATION
@@ -164,6 +165,12 @@ class BlockManager:
                 f"Nouveau block : {block_id}"
             )
 
+            await realtime_manager.broadcast({
+                "type": "block_started",
+                "block_id": block_id,
+                "active_blocks": list(self.blocks.keys())
+            })
+
         # ------------------------------------------------------
         # 6. RÉCUPÉRER LE BLOCK
         # ------------------------------------------------------
@@ -206,7 +213,13 @@ class BlockManager:
         elif level == "WARN":
 
             block["num_warn"] += 1
-
+        await realtime_manager.broadcast({
+            "type": "log_received",
+            "block_id": block_id,
+            "event_id": event_id,
+            "level": level,
+            "active_blocks": list(self.blocks.keys())
+        })
         # ------------------------------------------------------
         # 10. RESET DU TIMER
         # ------------------------------------------------------
@@ -559,6 +572,18 @@ class BlockManager:
                 block_id,
                 None
             )
+            await realtime_manager.broadcast({
+                "type": "block_completed",
+                "block_id": result["block_id"],
+                "num_events": result["num_events"],
+                "duration": result["duration"],
+                "num_info": result["num_info"],
+                "num_warn": result["num_warn"],
+                "prediction": result["prediction"],
+                "score": result["score"],
+                "model": result["model"],
+                "active_blocks": list(self.blocks.keys())
+            })
 
         # ------------------------------------------------------
         # Timer annulé

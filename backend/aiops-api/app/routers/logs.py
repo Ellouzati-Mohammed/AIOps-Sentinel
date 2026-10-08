@@ -43,7 +43,7 @@ block_manager = BlockManager(
 )
 
 es = Elasticsearch(
-    os.getenv("ELASTICSEARCH_URL", "http://localhost:9200")
+    os.getenv("ELASTICSEARCH_URL", "http://elasticsearch:9200")
 )
 ELASTICSEARCH_INDEX = "hdfs-raw-logs"
 

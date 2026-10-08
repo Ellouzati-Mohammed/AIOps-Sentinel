@@ -16,6 +16,7 @@ import { AppLayout } from "../components/layout/AppLayout";
 import SystemMetrics from "../components/common/SystemMetrics";
 
 import { useSystemMetricsHistory } from "../hooks/useSystemMetricsHistory";
+import { Section } from "../components/common/Section";
 
 function formatMetricTime(timestamp: string): string {
   const utcTimestamp =
@@ -74,7 +75,7 @@ export function SystemMetricsPage() {
         {/* =====================================================
             KPI SECTION
         ====================================================== */}
-
+      <Section>
         <SystemMetrics
           metrics={[
             "logs_received",
@@ -88,7 +89,8 @@ export function SystemMetricsPage() {
             "info_logs",
             "warn_logs",
           ]}
-        />
+          />
+        </Section>
 
         {/* =====================================================
             HISTORICAL TRENDS

@@ -14,7 +14,7 @@ from app.models import HDFSSequence, SystemMetrics
 
 ELASTICSEARCH_URL = os.getenv(
     "ELASTICSEARCH_URL",
-    "http://localhost:9200"
+    "http://elasticsearch:9200"
 )
 
 ELASTICSEARCH_INDEX = "hdfs-raw-logs"
@@ -425,9 +425,9 @@ def save_hourly_snapshot(
         # Save to database
         # ----------------------------------------------------
 
-       # db.add(snapshot)
+        db.add(snapshot)
 
-        #db.commit()
+        db.commit()
 
         db.refresh(snapshot)
 

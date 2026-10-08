@@ -138,8 +138,8 @@ export function SystemMetrics({
    * ----------------------------------------------------
    */
 
-  return (
-    <section className="kpi-section">
+  return (<>
+    
 
       {/* =====================================================
           KPI HEADER + DATE FILTER
@@ -601,8 +601,7 @@ export function SystemMetrics({
 
       </div>
 
-    </section>
-  );
+  </>);
 }
 
 export default SystemMetrics;

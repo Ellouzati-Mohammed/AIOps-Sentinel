@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { AppLayout } from '../components/layout/AppLayout';
 import { PredictionBadge } from '../components/common/PredictionBadge';
 import { useHDFSSequences } from '../hooks/useHDFSSequences';
+import { DataTable } from '../components/common/DataTable';
 
 const pageSize = 20;
 
@@ -63,7 +64,33 @@ export function BlocksPage() {
           </select>
         </div>
 
-        <div className="table-shell">
+        <DataTable
+          pagination={
+            <>
+              <button
+                onClick={() =>
+                  setPage((current) => Math.max(1, current - 1))
+                }
+                disabled={page === 1}
+              >
+                Previous
+              </button>
+
+              <span>
+                Page {page} {totalPages > 0 ? `of ${totalPages}` : ""}
+              </span>
+
+              <button
+                onClick={() => setPage((current) => current + 1)}
+                disabled={
+                  totalPages === 0 || page >= totalPages
+                }
+              >
+                Next
+              </button>
+            </>
+          }
+        >
           <table>
             <thead>
               <tr>
@@ -81,34 +108,84 @@ export function BlocksPage() {
                 <th>Created At</th>
               </tr>
             </thead>
+
             <tbody>
-              {loading && <tr><td colSpan={12}>Loading blocks...</td></tr>}
-              {error && <tr><td colSpan={12}>Unable to load blocks.</td></tr>}
-              {!loading && !error && blocks.map((block) => (
-                <tr key={block.id}>
-                  <td>{block.id}</td>
-                  <td><Link className="link-like" to={`/blocks/${block.block_id}`}>{block.block_id}</Link></td>
-                  <td className="mono">{block.event_sequence.join(', ')}</td>
-                  <td>{block.num_events}</td>
-                  <td>{block.duration.toFixed(2)}s</td>
-                  <td>{block.num_info}</td>
-                  <td>{block.num_warn}</td>
-                  <td><PredictionBadge prediction={block.prediction} /></td>
-                  <td>{block.score.toFixed(4)}</td>
-                  <td>{block.model_id}</td>
-                  <td>{formatDate(block.completed_at)}</td>
-                  <td>{formatDate(block.created_at)}</td>
+              {loading && (
+                <tr>
+                  <td colSpan={12}>Loading blocks...</td>
                 </tr>
-              ))}
-              {!loading && !error && blocks.length === 0 && <tr><td colSpan={12}>No blocks found.</td></tr>}
+              )}
+
+              {error && (
+                <tr>
+                  <td colSpan={12}>
+                    Unable to load blocks.
+                  </td>
+                </tr>
+              )}
+
+              {!loading &&
+                !error &&
+                blocks.map((block) => (
+                  <tr key={block.id}>
+                    <td>{block.id}</td>
+
+                    <td>
+                      <Link
+                        className="link-like"
+                        to={`/blocks/${block.block_id}`}
+                      >
+                        {block.block_id}
+                      </Link>
+                    </td>
+
+                    <td className="mono">
+                      {block.event_sequence.join(", ")}
+                    </td>
+
+                    <td>{block.num_events}</td>
+
+                    <td>
+                      {block.duration.toFixed(2)}s
+                    </td>
+
+                    <td>{block.num_info}</td>
+                    <td>{block.num_warn}</td>
+
+                    <td>
+                      <PredictionBadge
+                        prediction={block.prediction}
+                      />
+                    </td>
+
+                    <td>
+                      {block.score.toFixed(4)}
+                    </td>
+
+                    <td>{block.model_id}</td>
+
+                    <td>
+                      {formatDate(block.completed_at)}
+                    </td>
+
+                    <td>
+                      {formatDate(block.created_at)}
+                    </td>
+                  </tr>
+                ))}
+
+              {!loading &&
+                !error &&
+                blocks.length === 0 && (
+                  <tr>
+                    <td colSpan={12}>
+                      No blocks found.
+                    </td>
+                  </tr>
+                )}
             </tbody>
           </table>
-        </div>
-        <div className="pagination">
-          <button onClick={() => setPage((current) => Math.max(1, current - 1))} disabled={page === 1}>Previous</button>
-          <span>Page {page} {totalPages > 0 ? `of ${totalPages}` : ''}</span>
-          <button onClick={() => setPage((current) => current + 1)} disabled={totalPages === 0 || page >= totalPages}>Next</button>
-        </div>
+        </DataTable>
       </section>
     </AppLayout>
   );

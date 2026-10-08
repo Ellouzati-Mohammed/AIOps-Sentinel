@@ -1,4 +1,4 @@
-import { Search } from "lucide-react";
+import { Search, Section } from "lucide-react";
 import { useState } from "react";
 
 import { AppLayout } from "../components/layout/AppLayout";
@@ -43,8 +43,8 @@ export function AnomaliesPage() {
           KPI SECTION
       ====================================================== */}
 
-      <section className="dashboard-section dashboard-kpi-section">
-        <div className="dashboard-kpi-container">
+      <Section>
+       
            <SystemMetrics
              metrics={[
                "anomaly_predictions",
@@ -54,8 +54,8 @@ export function AnomaliesPage() {
                "avg_block_duration",
              ]}
            />
-        </div>
-      </section>
+       </Section>
+  
 
 
       {/* =====================================================

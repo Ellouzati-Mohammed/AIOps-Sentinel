@@ -1,4 +1,4 @@
-import { Pause, RefreshCcw, Search } from 'lucide-react';
+import { RefreshCcw, Search } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { AppLayout } from '../components/layout/AppLayout';
 import { getLogs, type LogRecord } from '../api/systemMetrics.api';
@@ -28,7 +28,6 @@ export function LiveLogsPage() {
 
   const handleSearch = () => {
     const nextQuery = searchInput.trim();
-    console.log('[Live Logs] search submitted:', nextQuery);
     setQuery(nextQuery);
     setPage(1);
   };
@@ -38,7 +37,6 @@ export function LiveLogsPage() {
       <section className="panel panel-logs">
         <div className="toolbar">
           <div className="toolbar-left">
-            <div className="live-pill"><span className="live-dot" /> Live</div>
             <label className="search-input compact">
               <Search size={14} />
               <input
@@ -59,7 +57,6 @@ export function LiveLogsPage() {
             </select>
           </div>
           <div className="toolbar-right">
-            <button className="secondary-button"><Pause size={14} /> Pause live stream</button>
             <button className="secondary-button" onClick={() => { setSearchInput(''); setQuery(''); setPage(1); }}><RefreshCcw size={14} /> Refresh</button>
           </div>
         </div>

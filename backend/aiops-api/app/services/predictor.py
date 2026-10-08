@@ -15,7 +15,7 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
-MODEL_PATH = BASE_DIR / "ml" / "best_bilstm_model.pth"
+MODEL_PATH = BASE_DIR / "ML" / "best_bilstm_model.pth"
 
 DEVICE = torch.device(
     "cuda" if torch.cuda.is_available() else "cpu"

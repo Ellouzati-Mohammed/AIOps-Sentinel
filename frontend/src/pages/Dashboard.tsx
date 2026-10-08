@@ -1,7 +1,13 @@
 import {
+  Activity,
+  AlertTriangle,
   BarChart3,
+  Clock3,
+  Layers3,
+ 
+  TimerReset,
 } from "lucide-react";
-
+import { useRealtime } from "../hooks/useRealtime";
 import { useState } from "react";
 
 import {
@@ -11,6 +17,7 @@ import {
   ComposedChart,
   Legend,
   Line,
+  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -24,6 +31,8 @@ import { AppLayout } from "../components/layout/AppLayout";
 
 import { useSystemMetricsHistory } from "../hooks/useSystemMetricsHistory";
 import { useRecentAnomalies } from "../hooks/useRecentAnomalies";
+
+import { Section } from "../components/common/Section";
 
 
 function formatMetricTime(timestamp: string): string {
@@ -54,14 +63,21 @@ function getTodayDate(): string {
   return `${today.getFullYear()}-${month}-${day}`;
 }
 
-
 export function DashboardPage() {
   /*
    * =====================================================
    * HISTORICAL DATA
    * =====================================================
    */
-
+  const {
+    connected,
+    logs,
+    activeBlocks,
+    predictions,
+    anomalies,
+    logActivity,
+    lastUpdate,
+  } = useRealtime();
   const [logsDateInput, setLogsDateInput] = useState(getTodayDate);
   const [logsDate, setLogsDate] = useState("");
 
@@ -151,19 +167,381 @@ export function DashboardPage() {
           KPI SECTION
       ====================================================== */}
 
-      <section className="dashboard-section dashboard-kpi-section">
-        <div className="dashboard-kpi-container">
+      <Section>
+        
           <SystemMetrics
             metrics={[
               "logs_received",
               "blocks_completed",
               "total_predictions",
               "anomaly_rate",
+              "avg_score",
               "avg_block_duration",
             ]}
           />
+       
+      </Section>
+
+
+      {/* =====================================================
+          REAL-TIME MONITORING
+      ====================================================== */}
+
+      <Section>
+  <header className="realtime-console-header">
+    <div className="realtime-console-heading">
+      <div>
+        <div className="realtime-console-eyebrow">
+          <span className="realtime-live-dot" />
+          REAL-TIME MONITORING
         </div>
-      </section>
+
+        <h2 id="realtime-console-title">
+          HDFS observability console
+        </h2>
+
+        <p>
+          HDFS logs <span>→</span> active blocks{" "}
+          <span>→</span> predictions <span>→</span>{" "}
+          anomalies
+        </p>
+      </div>
+    </div>
+
+    <div className="realtime-console-status">
+      <span
+        className={`realtime-live-badge ${
+          connected ? "connected" : "disconnected"
+        }`}
+      >
+        {connected ? "LIVE" : "OFFLINE"}
+      </span>
+
+      <span className="realtime-update-time">
+        <Clock3 size={14} />
+
+        Updated{" "}
+        {lastUpdate
+          ? lastUpdate.toLocaleTimeString()
+          : "--:--:--"}
+      </span>
+    </div>
+  </header>
+
+
+  {/* =====================================================
+      LIVE LOG ACTIVITY
+      ===================================================== */}
+
+  <article className="realtime-chart-surface">
+    <div className="realtime-surface-heading">
+      <div>
+        <span className="realtime-surface-label">
+          ACTIVITY STREAM
+        </span>
+
+        <h3>Live Log Activity</h3>
+
+        <p>
+          INFO and WARN events received during the
+          latest window
+        </p>
+      </div>
+
+      <Activity size={18} />
+    </div>
+
+    <div className="realtime-live-chart">
+      <ResponsiveContainer
+        width="100%"
+        height={250}
+      >
+        <LineChart data={logActivity}>
+          <CartesianGrid
+            strokeDasharray="3 3"
+            stroke="#e2e8f0"
+            vertical={false}
+          />
+
+          <XAxis
+            dataKey="time"
+            tickLine={false}
+            axisLine={false}
+            tick={{
+              fill: "#64748b",
+              fontSize: 10,
+            }}
+          />
+
+          <YAxis
+            tickLine={false}
+            axisLine={false}
+            tick={{
+              fill: "#64748b",
+              fontSize: 10,
+            }}
+          />
+
+          <Tooltip />
+
+          <Legend />
+
+          <Line
+            type="monotone"
+            dataKey="info"
+            name="INFO"
+            stroke="#2563eb"
+            strokeWidth={3}
+            dot={{ r: 3 }}
+            activeDot={{ r: 5 }}
+            isAnimationActive
+            animationDuration={900}
+          />
+
+          <Line
+            type="monotone"
+            dataKey="warn"
+            name="WARN"
+            stroke="#f59e0b"
+            strokeWidth={3}
+            dot={{ r: 3 }}
+            activeDot={{ r: 5 }}
+            isAnimationActive
+            animationDuration={900}
+          />
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  </article>
+
+  {/* =====================================================
+      EVENT STREAM + ACTIVE BLOCKS
+      ===================================================== */}
+
+  <div className="realtime-console-grid">
+    {/* ---------------------------------------------------
+        LIVE EVENT FEED
+        --------------------------------------------------- */}
+
+    <article className="realtime-console-card realtime-feed-card">
+      <div className="realtime-surface-heading compact">
+        <div>
+          <span className="realtime-surface-label">
+            EVENT STREAM
+          </span>
+
+          <h3>Live Event Feed</h3>
+        </div>
+
+        <Activity size={17} />
+      </div>
+
+      <div className="realtime-event-feed">
+        {logs.length === 0 ? (
+          <div className="realtime-empty-state">
+            Waiting for HDFS events...
+          </div>
+        ) : (
+          logs.map((event) => (
+            <div
+              className={`realtime-event-row ${event.level.toLowerCase()}`}
+              key={event.id}
+            >
+              <span className="realtime-event-time">
+                {event.timestamp}
+              </span>
+
+              <span className="realtime-event-level">
+                {event.level}
+              </span>
+
+              <div className="realtime-event-copy">
+                <strong>
+                  {event.blockId}
+                </strong>
+
+                <span>
+                  {event.eventId} ·{" "}
+                  {event.message}
+                </span>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </article>
+
+    {/* ---------------------------------------------------
+        ACTIVE BLOCKS
+        --------------------------------------------------- */}
+
+    <article className="realtime-console-card">
+      <div className="realtime-surface-heading compact">
+        <div>
+          <span className="realtime-surface-label">
+            BLOCK MANAGER
+          </span>
+
+          <h3>Active Blocks</h3>
+        </div>
+
+        <Layers3 size={17} />
+      </div>
+
+      <div className="realtime-active-list">
+        {activeBlocks.length === 0 ? (
+          <div className="realtime-empty-state">
+            No active blocks
+          </div>
+        ) : (
+          activeBlocks.map((block) => (
+            <div
+              className="realtime-active-row"
+              key={block.blockId}
+            >
+              <span className="realtime-block-state-dot" />
+
+              <div className="realtime-active-block-copy">
+                <strong>
+                  {block.blockId}
+                </strong>
+
+                <span>
+                  {block.events} events · last
+                  activity{" "}
+                  {block.lastActivity}
+                </span>
+              </div>
+
+              <span className="realtime-active-state">
+                {block.status}
+              </span>
+            </div>
+          ))
+        )}
+      </div>
+    </article>
+  </div>
+
+  {/* =====================================================
+      PREDICTIONS + ANOMALIES
+      ===================================================== */}
+
+  <div className="realtime-console-grid lower">
+    {/* ---------------------------------------------------
+        PREDICTION ACTIVITY
+        --------------------------------------------------- */}
+
+    <article className="realtime-console-card">
+      <div className="realtime-surface-heading compact">
+        <div>
+          <span className="realtime-surface-label">
+            MODEL OUTPUT
+          </span>
+
+          <h3>Prediction Activity</h3>
+        </div>
+
+        <TimerReset size={17} />
+      </div>
+
+      <div className="realtime-prediction-feed">
+        {predictions.length === 0 ? (
+          <div className="realtime-empty-state">
+            Waiting for model predictions...
+          </div>
+        ) : (
+          predictions.map((prediction) => (
+            <div
+              className="realtime-prediction-row"
+              key={prediction.id}
+            >
+              <span
+                className={`realtime-prediction-dot ${prediction.prediction.toLowerCase()}`}
+              />
+
+              <span className="realtime-prediction-time">
+                {prediction.timestamp}
+              </span>
+
+              <div className="realtime-prediction-copy">
+                <strong>
+                  {prediction.blockId}
+                </strong>
+
+                <span>
+                  {prediction.model} · score{" "}
+                  {prediction.score.toFixed(2)}
+                </span>
+              </div>
+
+              <PredictionBadge
+                prediction={
+                  prediction.prediction
+                }
+              />
+            </div>
+          ))
+        )}
+      </div>
+    </article>
+
+    {/* ---------------------------------------------------
+        RECENT ANOMALIES
+        --------------------------------------------------- */}
+
+    <article className="realtime-console-card anomaly-card">
+      <div className="realtime-surface-heading compact">
+        <div>
+          <span className="realtime-surface-label">
+            ATTENTION REQUIRED
+          </span>
+
+          <h3>Recent Anomalies</h3>
+        </div>
+
+        <AlertTriangle size={17} />
+      </div>
+
+      <div className="realtime-anomaly-list">
+        {anomalies.length === 0 ? (
+          <div className="realtime-empty-state">
+            No anomalies detected
+          </div>
+        ) : (
+          anomalies.map((anomaly) => (
+            <div
+              className="realtime-anomaly-row"
+              key={anomaly.id}
+            >
+              <span className="realtime-anomaly-icon">
+                <AlertTriangle size={14} />
+              </span>
+
+              <div>
+                <strong>
+                  {anomaly.blockId}
+                </strong>
+
+                <span>
+                  {anomaly.timestamp}
+                </span>
+              </div>
+
+              <div className="realtime-anomaly-score">
+                <span>ANOMALY</span>
+
+                <strong>
+                  {anomaly.score.toFixed(2)}
+                </strong>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </article>
+  </div>
+</Section>
 
 
       {/* =====================================================

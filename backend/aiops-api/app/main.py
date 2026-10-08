@@ -1,8 +1,11 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from app.services.realtime import realtime_manager
 from fastapi.middleware.cors import CORSMiddleware
 import asyncio
 from contextlib import asynccontextmanager
+import logging
 
+logger = logging.getLogger("uvicorn.error")
 from app.scheduler.metrics_scheduler import metrics_scheduler
 
 from app.routers import (
@@ -92,3 +95,47 @@ def root():
         "status": "running",
         "version": "1.0.0"
     }
+
+@app.websocket("/ws/realtime")
+async def websocket_realtime(websocket: WebSocket):
+
+    client = websocket.client
+
+    logger.info(
+        f"[WebSocket] Tentative de connexion "
+        f"client={client}"
+    )
+
+    try:
+
+        await realtime_manager.connect(websocket)
+
+        logger.info(
+            "[WebSocket] Connexion acceptée"
+        )
+
+        while True:
+
+            message = await websocket.receive_text()
+
+            logger.info(
+                f"[WebSocket] Message reçu : {message}"
+            )
+
+    except WebSocketDisconnect as e:
+
+        logger.warning(
+            f"[WebSocket] Client déconnecté "
+            f"code={e.code}"
+        )
+
+        realtime_manager.disconnect(websocket)
+
+    except Exception as e:
+
+        logger.exception(
+            "[WebSocket] ERREUR : %s",
+            e
+        )
+
+        realtime_manager.disconnect(websocket)
